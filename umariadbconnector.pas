@@ -14,12 +14,39 @@ const
   MariaDbDebug: boolean = False;
 
 type
-  MySqlCommands = (COMMAND_SLEEP, COMMAND_QUIT, COMMAND_INIT_DB, COMMAND_QUERY,
-    COMMAND_MYSQL_LIST, COMMAND_CREATE_DB, COMMAND_DROP_DB, COMMAND_REFRESH,
-    COMMAND_SHUTDOWN, COMMAND_STATISTICS, COMMAND_PROCESS_INFO, COMMAND_CONNECT,
-    COMMAND_PROCESS_KILL, COMMAND_DEBUG, COMMAND_PING, COMMAND_TIME,
-    COMMAND_DELAYED_INSERT, COMMAND_CHANGE_USER, COMMAND_BINLOG_DUMP,
-    COMMAND_TABLE_DUMP, COMMAND_CONNECT_OUT);
+  MySqlCommands = (
+    { $01 } COMMAND_SLEEP,         // Not used currently. */
+    { $02 } COMMAND_QUIT,
+    { $03 } COMMAND_INIT_DB,
+    { $04 } COMMAND_QUERY,
+    { $05 } COMMAND_MYSQL_LIST,    // Deprecated. */
+    { $06 } COMMAND_CREATE_DB,     // Deprecated. */
+    { $07 } COMMAND_DROP_DB,       // Deprecated. */
+    { $08 } COMMAND_REFRESH,
+    { $09 } COMMAND_SHUTDOWN,
+    { $0A } COMMAND_STATISTICS,
+    { $0B } COMMAND_PROCESS_INFO,    // Deprecated. */
+    { $0C } COMMAND_CONNECT,
+    { $0D } COMMAND_PROCESS_KILL,    // Deprecated. */
+    { $0E } COMMAND_DEBUG,
+    { $0F } COMMAND_PING,
+    { $10 } COMMAND_TIME,
+    { $11 } COMMAND_DELAYED_INSERT,
+    { $12 } COMMAND_CHANGE_USER,
+    { $13 } COMMAND_BINLOG_DUMP,
+    { $14 } COMMAND_TABLE_DUMP,
+    { $15 } COMMAND_CONNECT_OUT,
+    { $16 } COMMAND_REGISTER_SLAVE,
+    { $17 } COMMAND_STMT_PREPARE,
+    { $18 } COMMAND_STMT_EXECUTE,
+    { $19 } COMMAND_STMT_SEND_LONG_DATA,
+    { $1A } COMMAND_STMT_CLOSE,
+    { $1B } COMMAND_STMT_RESET,
+    { $1C } COMMAND_SET_OPTION,
+    { $1D } COMMAND_STMT_FETCH,
+    { $1E } COMMAND_DAEMON,
+    { $1F } COMMAND_END
+    );
 
 type
   TMariaDBConnector = class(TObject)
@@ -39,9 +66,10 @@ type
     procedure SendPacket(Buffer: rawbytestring);
     function ReceivePacket(Timeout: integer): rawbytestring;
     function ConnectAndLogin(AServer, APort, AUser, APassword, ADatabase: rawbytestring): boolean;
-    function ExecuteCommand(Command: MySqlCommands; SQL: string = ''): boolean;
+    function ExecuteCommand(Command: MySqlCommands; SQL: rawbytestring = ''): boolean;
     function Query(SQL: string): boolean;
     function Ping: boolean;
+    procedure SetMultiOptions(Value: Boolean);
     procedure Quit;
     property LastError: integer read FLastError;
     property LastErrorDesc: string read FLastErrorDesc;
@@ -166,7 +194,7 @@ begin
         ASize := Size;
       end
       else
-        ASize := Size div 3 { ?? FConnectionCharsetInfo.mbmaxlen };
+        ASize := Size div 1 { ?? FConnectionCharsetInfo.mbmaxlen };
     end;
     MYSQL_TYPE_TINY_BLOB..MYSQL_TYPE_BLOB:
       if charsetnr = 63 then ADatatype := ftBlob
@@ -282,6 +310,7 @@ begin
     FLastErrorDesc := 'Got packets out of order of wrong size';
     exit('');
   end;
+
   Inc(FPackNumber); // we only want a correct packet numer next time
 
   Buffer := '';
@@ -525,7 +554,7 @@ end;
 // https://mariadb.com/kb/en/result-set-packets/
 // ---------------------------
 
-function TMariaDBConnector.ExecuteCommand(Command: MySqlCommands; SQL: string = ''): boolean;
+function TMariaDBConnector.ExecuteCommand(Command: MySqlCommands; SQL: rawbytestring = ''): boolean;
 var
   Buffer: rawbytestring;
   Value: rawbytestring;
@@ -554,6 +583,7 @@ begin
   Buffer := ReceivePacket(2000);
   if (FLastError <> 0) then exit(False);
   if _is_error(Buffer) then exit(False);
+  if _is_eof(Buffer) then exit(True); // for COMMAND_SET_OPTION
   if Buffer = '' then exit(True); // no resultset
 
   Column := Ord(Buffer[1]);
@@ -628,7 +658,11 @@ begin
       Inc(Column);
       FDataset.Fields[Column].Clear;
 
-      if Buffer[Ps] = #$FB then continue; // NULL
+      if Buffer[Ps] = #$FB then
+      begin
+        Inc(Ps);
+        continue; // NULL
+      end;
 
       // we are in TEXT protocol so result is always in text
       Value := GetString(Buffer, Ps);
@@ -681,6 +715,15 @@ end;
 procedure TMariaDBConnector.Quit;
 begin
   ExecuteCommand(COMMAND_QUIT);
+end;
+
+procedure TMariaDBConnector.SetMultiOptions(Value: Boolean);
+var
+  Val: rawbytestring;
+begin
+  Val := #0#0;
+  if Value then Val := #1#0;
+  ExecuteCommand(COMMAND_SET_OPTION, Val);
 end;
 
 // ---------------------------

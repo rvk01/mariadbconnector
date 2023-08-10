@@ -8,7 +8,7 @@ interface
 uses
   SysUtils, blcksock, synacode,
   strutils, DB, BufDataset,
-  typinfo, DateUtils;
+  typinfo, DateUtils, Math;
 
 const
   MariaDbDebug: boolean = False;
@@ -55,8 +55,15 @@ type
     FLastErrorDesc: string;
     FPackNumber: byte;
     FDataset: TBufDataset;
+    FRowsAffected: integer;
+    FLastInsertId: integer;
+    FServerStatus: integer;
+    FWarningCount: integer;
   private
     procedure DebugStr(Log: string);
+    function _set_int(Value: uint64; Len: Integer): rawbytestring;
+    function _get_int(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): integer; // -1 = lenenc
+    function _get_str(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): rawbytestring;
     function _is_error(Buffer: rawbytestring): boolean;
     function _is_ok(Buffer: rawbytestring): boolean;
     function _is_eof(Buffer: rawbytestring): boolean;
@@ -69,7 +76,7 @@ type
     function ExecuteCommand(Command: MySqlCommands; SQL: rawbytestring = ''): boolean;
     function Query(SQL: string): boolean;
     function Ping: boolean;
-    procedure SetMultiOptions(Value: Boolean);
+    procedure SetMultiOptions(Value: boolean);
     procedure Quit;
     property LastError: integer read FLastError;
     property LastErrorDesc: string read FLastErrorDesc;
@@ -89,25 +96,65 @@ begin
 end;
 
 const
-  NOT_NULL_FLAG = 1;       //  Field can't be NULL
-  PRIMARY_KEY_FLAG = 2;        //  Field is part of a primary key
-  UNIQUE_KEY_FLAG = 4;     //  Field is part of a unique key
-  MULTIPLE_KEY_FLAG = 8;   //  Field is part of a key
-  BLOB_FLAG = 16;          //  Field is a blob
-  UNSIGNED_FLAG = 32;      //  Field is unsigned
-  ZEROFILL_FLAG = 64;      //  Field is zerofill
-  BINARY_FLAG = 128;       //  Field is binary
-  ENUM_FLAG = 256;            // field is an enum
-  AUTO_INCREMENT_FLAG = 512;  // field is a autoincrement field
-  TIMESTAMP_FLAG = 1024;      // Field is a timestamp
-  SET_FLAG = 2048;            // field is a set
+  // flags for field types
+  NOT_NULL_FLAG = 1;            //  Field can't be NULL
+  PRIMARY_KEY_FLAG = 2;         //  Field is part of a primary key
+  UNIQUE_KEY_FLAG = 4;          //  Field is part of a unique key
+  MULTIPLE_KEY_FLAG = 8;        //  Field is part of a key
+  BLOB_FLAG = 16;               //  Field is a blob
+  UNSIGNED_FLAG = 32;           //  Field is unsigned
+  ZEROFILL_FLAG = 64;           //  Field is zerofill
+  BINARY_FLAG = 128;            //  Field is binary
+  ENUM_FLAG = 256;              // field is an enum
+  AUTO_INCREMENT_FLAG = 512;    // field is a autoincrement field
+  TIMESTAMP_FLAG = 1024;        // Field is a timestamp
+  SET_FLAG = 2048;              // field is a set
   NO_DEFAULT_VALUE_FLAG = 4096; // Field doesn't have default value
   ON_UPDATE_NOW_FLAG = 8192;    // Field is set to NOW on UPDATE
-  NUM_FLAG = 32768;           // Field is num (for clients)
-  PART_KEY_FLAG = 16384;      // Intern; Part of some key
-  GROUP_FLAG = 32768;         // Intern: Group field
-  UNIQUE_FLAG = 65536;        // Intern: Used by sql_yacc
-  BINCMP_FLAG = 131072;       // Intern: Used by sql_yacc
+  NUM_FLAG = 32768;             // Field is num (for clients)
+  PART_KEY_FLAG = 16384;        // Intern; Part of some key
+  GROUP_FLAG = 32768;           // Intern: Group field
+  UNIQUE_FLAG = 65536;          // Intern: Used by sql_yacc
+  BINCMP_FLAG = 131072;         // Intern: Used by sql_yacc
+
+  // Server and Client Capabilities
+  CLIENT_CLIENT_MYSQL = 1;             // new more secure passwords
+  CLIENT_FOUND_ROWS = 2;                // Found instead of affected rows
+  CLIENT_LONG_FLAG = 4;               // Get all column flags
+  CLIENT_CONNECT_WITH_DB = 8;           // One can specify db on connect
+  CLIENT_NO_SCHEMA = 16;              // Don't allow database.table.column
+  CLIENT_COMPRESS = 32;               // Can use compression protocol
+  CLIENT_ODBC = 64;                   // Odbc client
+  CLIENT_LOCAL_FILES = 128;             // Can use LOAD DATA LOCAL
+  CLIENT_IGNORE_SPACE = 256;            // Ignore spaces before '('
+  CLIENT_PROTOCOL_41 = 1 shl 9;         // New 4.1 protocol
+  CLIENT_INTERACTIVE = 1 shl 10;        // This is an interactive client
+  CLIENT_SSL = 1 shl 11;                // Switch to SSL after handshake
+  CLIENT_IGNORE_SIGPIPE = 1 shl 12;       // IGNORE sigpipes
+  CLIENT_TRANSACTIONS = 1 shl 13;         // Client knows about transactions
+  CLIENT_RESERVED = 1 shl 14;            // Old flag for 4.1 protocol
+  CLIENT_SECURE_CONNECTION = 1 shl 15;  // Old flag for 4.1 authentication
+  CLIENT_MULTI_STATEMENTS = 1 shl 16;   // Enable/disable multi-stmt support
+  CLIENT_MULTI_RESULTS = 1 shl 17;      // Enable/disable multi-results
+  CLIENT_PS_MULTI_RESULTS = 1 shl 18;   // Multi-results in PS-protocol
+  CLIENT_PLUGIN_AUTH = 1 shl 19;        // Client supports plugin authentication
+  CLIENT_CONNECT_ATTRS = 1 shl 20;      // Client supports connection attributes
+  CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA = 1 shl 21;  // Enable authentication response packet to be larger than 255 bytes.
+  CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS = 1 shl 22;    // Don't close the connection for a connection with expired password.
+  CLIENT_SESSION_TRACK = 1 shl 23;      // Capable of handling server state change information. Its a hint to the server to include the state change information in Ok packet.
+  CLIENT_DEPRECATE_EOF = 1 shl 24;      // Client no longer needs EOF packet
+  // CLIENT_OPTIONAL_RESULTSET_METADATA = 1 shl 25;  // client can handle optional metadata information in the resultset
+  CLIENT_ZSTD_COMPRESSION_ALGORITHM = 1 shl 26; // Client sets this flag when it is configured to use zstd compression method
+  //CLIENT_QUERY_ATTRIBUTES = 1 shl 27; // Can send the optional part containing the query parameter set(s)
+  CLIENT_CAPABILITY_EXTENSION = 1 shl 29; // reserved for futur use. (Was CLIENT_PROGRESS Client support progress indicator before 10.2)
+  CLIENT_SSL_VERIFY_SERVER_CERT = 1 shl 30;
+  CLIENT_REMEMBER_OPTIONS = 1 shl 31;
+
+  MARIADB_CLIENT_PROGRESS = 1 shl 32;              // Client support progress indicator (since 10.2)
+  MARIADB_CLIENT_COM_MULTI = 1 shl 33;             // Permit COM_MULTI protocol
+  MARIADB_CLIENT_STMT_BULK_OPERATIONS = 1 shl 34;  // Permit bulk insert
+  MARIADB_CLIENT_EXTENDED_TYPE_INFO = 1 shl 35;    // add extended metadata information
+  MARIADB_CLIENT_CACHE_METADATA = 1 shl 36;        // permit skipping metadata
 
 type
   enum_MYSQL_types = (
@@ -194,7 +241,7 @@ begin
         ASize := Size;
       end
       else
-        ASize := Size div 1 { ?? FConnectionCharsetInfo.mbmaxlen };
+        ASize := Size div 1 { ?? FConnectionCharsetInfo.mbmaxlen }; // we need the same space in our dataset
     end;
     MYSQL_TYPE_TINY_BLOB..MYSQL_TYPE_BLOB:
       if charsetnr = 63 then ADatatype := ftBlob
@@ -204,40 +251,6 @@ begin
     else
       Result := False;
   end;
-end;
-
-function GetString(var Buffer: rawbytestring; var i: uint32): rawbytestring;
-var
-  Len, x, j: uint32;
-begin
-  Result := '';
-  // < 0xFB - Integer value is this 1 byte integer
-  // 0xFB - NULL value
-  // 0xFC - Integer value is encoded in the next 2 bytes (3 bytes total)
-  // 0xFD - Integer value is encoded in the next 3 bytes (4 bytes total)
-  // 0xFE - Integer value is encoded in the next 8 bytes (9 bytes total)
-  Len := Ord(Buffer[i]);
-  Inc(i);
-  if Buffer[i] = #$FB then exit(''); // NULL
-  x := 0;
-  if Len = $FC then x := 2; // 2 bytes len
-  if Len = $FD then x := 3; // 3 bytes len
-  if Len = $FE then x := 8; // 8 bytes len
-  if x > 0 then
-  begin
-    j := 0;
-    Len := 0;
-    while x > 0 do
-    begin
-      Len := Len + Ord(Buffer[i]) shl j;
-      j := j + 8;
-      Dec(x);
-      Inc(i);
-    end;
-  end;
-  // we are in TEXT protocol so result is always in text
-  Result := Copy(Buffer, i, Len);
-  Inc(i, Len); // string<lenenc> column
 end;
 
 {$WARN 5028 off : Local $1 "$2" is not used}
@@ -331,8 +344,83 @@ end;
 // https://mariadb.com/kb/en/4-server-response-packets/
 // ---------------------------
 
+function TMariaDBConnector._set_int(Value: uint64; Len: Integer): rawbytestring;
+var
+  j: byte;
+begin
+  Result := '';
+  j := 0;
+  while Len > 0 do
+  begin
+    Result := Result + Chr((Value and ($FF shl j)) shr j);
+    Inc(j, 8);
+    Dec(Len);
+  end;
+end;
+
+
+
+function TMariaDBConnector._get_int(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): integer; // -1 = lenenc
+var
+  Int, j: uint32;
+begin
+  if len = -1 then // int<lenenc> Length-encoded integers
+  begin
+    // < 0xFB - Integer value is this 1 byte integer
+    // 0xFB - NULL value
+    // 0xFC - Integer value is encoded in the next 2 bytes (3 bytes total)
+    // 0xFD - Integer value is encoded in the next 3 bytes (4 bytes total)
+    // 0xFE - Integer value is encoded in the next 8 bytes (9 bytes total)
+    Int := Ord(Buffer[Ps]);
+    Inc(Ps);
+    len := 0;
+    if Int = $FB then exit(0); // NULL // we can't do that yet
+    if Int = $FC then len := 2; // 2 bytes len
+    if Int = $FD then len := 3; // 3 bytes len
+    if Int = $FE then len := 8; // 8 bytes len
+  end;
+  if len > 0 then // int<fix> Fixed-length integers
+  begin
+    j := 0;
+    Int := 0;
+    while len > 0 do // this can probably be done better
+    begin
+      Int := Int + Ord(Buffer[Ps]) shl j;
+      j := j + 8;
+      Dec(len);
+      Inc(Ps);
+    end;
+  end;
+  Result := Int;
+end;
+
+function TMariaDBConnector._get_str(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): rawbytestring;
+begin
+  if len > 0 then // string<fix> Fixed-length strings
+  begin
+    Result := Copy(Buffer, Ps, len);
+    Inc(Ps, len);
+    exit;
+  end;
+  if len = -1 then // string<lenenc> Length-encoded strings
+  begin
+    len := _get_int(Buffer, Ps, len);
+    Result := Copy(Buffer, Ps, len);
+    Inc(Ps, Len);
+    exit;
+  end;
+  if len = 0 then // string<NUL> Null-terminated strings  // string<EOF> End-of-file length string
+  begin
+    while (Buffer[Ps + len] <> #$00) and (Ps + len < Length(Buffer)) do Inc(len);
+    Result := Copy(Buffer, Ps, len);
+    Inc(Ps, len + 1); // incl NULL
+    exit;
+  end;
+end;
+
 function TMariaDBConnector._is_error(Buffer: rawbytestring): boolean;
 var
+  Ps: uint32;
   i: integer;
 begin
   // https://mariadb.com/kb/en/err_packet/
@@ -356,8 +444,9 @@ begin
   begin
     DebugStr('Answer from server: ' + Buf2Hex(buffer));
     DebugStr('We have an error ' + Ord(Buffer[1]).ToString);
-    i := Ord(buffer[2]) + Ord(buffer[3]) shl 8;
-    DebugStr('Error code: ' + i.ToString + ',  see https://dev.mysql.com/doc/mysql-errors/8.0/en/server-error-reference.html');
+    Ps := 2;
+    i := _get_int(Buffer, Ps, 2);
+    DebugStr('Error code: ' + i.ToString + ',  see https://mariadb.com/kb/en/mariadb-error-codes/');
     FLastError := i;
     FLastErrorDesc := '';
     if (i <> $ffff) then
@@ -373,6 +462,8 @@ begin
 end;
 
 function TMariaDBConnector._is_ok(Buffer: rawbytestring): boolean;
+var
+  Ps: uint32;
 begin
   // https://mariadb.com/kb/en/ok_packet/
   // OK PACKAGE     07 00 00 {len} 02 {number} 00 {status} 00 00 02 00 00 00
@@ -388,6 +479,12 @@ begin
   Result := False;
   if (length(Buffer) > 4) and (Ord(Buffer[1]) = 0) then
   begin
+    Ps := 2;
+    FRowsAffected := _get_int(Buffer, Ps);
+    FLastInsertId := _get_int(Buffer, Ps);
+    FServerStatus := _get_int(Buffer, Ps, 2);
+    FWarningCount := _get_int(Buffer, Ps, 2);
+
     DebugStr('Answer from server: ' + Buf2Hex(buffer));
     DebugStr('We have success ' + Ord(Buffer[1]).ToString);
     exit(True); // or do something else here
@@ -415,9 +512,20 @@ var
   AuthPlugin: string;
   Buffer: rawbytestring = '';
   Seed: rawbytestring;
-  ServerVersion: rawbytestring;
-  Part1, Part2: rawbytestring;
-  i: integer;
+
+  FServerProtocol: integer;
+  FServerVersion: rawbytestring;
+  FConnectionId: integer;
+  FServerCapabilities: uint64;
+  FServerDefaultCollation: integer;
+  FStatusFlags: integer;
+  FPluginDataLength: integer;
+
+  FClientCapabilities: uint64;
+
+    Part1, Part2: rawbytestring;
+  Ps: uint32;
+  x: uint64;
 begin
   Result := False;
   if AServer = '' then AServer := '127.0.0.1';
@@ -440,80 +548,65 @@ begin
   if (FLastError <> 0) then exit(False);
 
   DebugStr('We have contact');
+  DebugStr(Buf2Hex(Buffer));
 
-  i := 1; // pack len [j]
-  DebugStr('protocol: ' + Ord(Buffer[i]).ToString); // int<1> protocol version
-  if Ord(Buffer[i]) = 10 then
-    DebugStr('client_capabilities = 1');
-  Inc(i);
+  Ps := 1;
 
-  ServerVersion := ''; // string<NUL> server version (MariaDB server version is by default prefixed by "5.5.5-")
-  while Buffer[i] <> #0 do
+  FServerProtocol := _get_int(Buffer, Ps, 1); // int<1> protocol version
+  FServerVersion := _get_str(Buffer, Ps, 0); // string<NUL> server version (MariaDB server version is by default prefixed by "5.5.5-")
+  FConnectionId := _get_int(Buffer, Ps, 4); // int<4> connection id, not read here
+  seed := _get_str(Buffer, Ps, 8); // string<8> scramble 1st part (authentication seed)
+  Inc(Ps, 1); // string<1> reserved byte
+
+  FServerCapabilities := _get_int(Buffer, Ps, 2); // int<2> server capabilities (1st part)
+  FServerDefaultCollation := _get_int(Buffer, Ps, 1); // int<1> server default collation
+  FStatusFlags := _get_int(Buffer, Ps, 2); // int<2> status flags
+  x := _get_int(Buffer, Ps, 2);
+  x := x shl 16;
+  FServerCapabilities := FServerCapabilities + x; // int<2> server capabilities (2nd part)
+  if (FServerCapabilities and CLIENT_PLUGIN_AUTH) <> 0 then
+    FPluginDataLength := _get_int(Buffer, Ps, 1) // - int<1> plugin data length or - int<1> 0x00
+  else
+    FPluginDataLength := 0;
+  Inc(Ps, 6); // string<6> filler
+  if (FServerCapabilities and CLIENT_CLIENT_MYSQL) = 0 then
   begin
-    ServerVersion := ServerVersion + Buffer[i];
-    Inc(i);
+    x := _get_int(Buffer, Ps, 4);
+    x := x shl 32;
+    FServerCapabilities := FServerCapabilities + x; // - int<4> server capabilities 3rd part . MariaDB specific flags /* MariaDB 10.2 or later */
   end;
-  DebugStr('server: ' + ServerVersion);
-  Inc(i);
-
-  // int<4> connection id, not read here
-  Inc(i, 4);
-
-  seed := Copy(Buffer, i, 8); // string<8> scramble 1st part (authentication seed)
-  DebugStr('1st seed: ' + Buf2Hex(seed));
-  Inc(i, 8);
-  Inc(i, 1); // string<1> reserved byte
-
-  if Length(Buffer) >= i + 1 then
-    Inc(i, 1);
-
-  // int<2> server capabilities (1st part)
-  // int<1> server default collation
-  // int<2> status flags
-  // int<2> server capabilities (2nd part)
-  // if (server_capabilities & PLUGIN_AUTH)
-  // - int<1> plugin data length
-  // else
-  // - int<1> 0x00
-  // string<6> filler
-  // if (server_capabilities & CLIENT_MYSQL)
-  // - string<4> filler
-  // else
-  // - int<4> server capabilities 3rd part . MariaDB specific flags /* MariaDB 10.2 or later */
-  // if (server_capabilities & CLIENT_SECURE_CONNECTION)
-  // - string<n> scramble 2nd part . Length = max(12, plugin data length - 9)
-  // - string<1> reserved byte
-  // if (server_capabilities & PLUGIN_AUTH)
-  // - string<NUL> authentication plugin name
-
-  (*
-  if Length(Buffer) >= i + 18 then
+  if (FServerCapabilities and CLIENT_SECURE_CONNECTION) <> 0 then
   begin
-    { Get server_language, not read here }
-    { Get server_status, not read here }
+    //DebugStr('getting 2nd seed');
+    Seed := Seed + _get_str(Buffer, Ps, Math.Max(12, FPluginDataLength - 9)); // string<n> scramble 2nd part. Length = max(12, plugin data length - 9)
+    Inc(Ps, 1); // string<1> reserved byte
   end;
-  *)
-  Inc(i, 18 - 1);
-  if Length(Buffer) >= i + 12 - 1 then
-    seed := seed + Copy(Buffer, i, 12);
-  DebugStr('incl. 2nd part seed: ' + Buf2Hex(seed));
-
-  Inc(i, 12 + 1);
-
-  AuthPlugin := ''; // null terminated version
-  while (Buffer[i] <> #0) do
+  if (FServerCapabilities and CLIENT_PLUGIN_AUTH) <> 0 then
   begin
-    AuthPlugin := AuthPlugin + Buffer[i];
-    Inc(i);
+    //DebugStr('getting authplugin');
+    AuthPlugin := _get_str(Buffer, Ps, 0); // string<NUL> authentication plugin name
   end;
-  DebugStr('Authentication Plugin: ' + AuthPlugin);
+
+  DebugStr('------------------');
+  DebugStr('Server protocol: ' + FServerProtocol.ToString);
+  DebugStr('Sserver version: ' + FServerVersion);
+  DebugStr('Connection ID: ' + FConnectionId.ToString);
+  DebugStr('Server capabilities: ' + BinStr(FServerCapabilities, 64) );  // 00000000000000001111011111111110
+  DebugStr('Server default collation: ' + FServerDefaultCollation.ToString);
+  DebugStr('Status flag: ' + FStatusFlags.ToString);
+  DebugStr('Plugin data length: ' + FPluginDataLength.ToString);
+  DebugStr('Authentication plugin: ' + AuthPlugin);
+  DebugStr('------------------');
 
   // SHA1( password )    XOR    SHA1( seed + SHA1( SHA1( password ) ) )
   Part1 := SHA1(APassword);
   Part2 := SHA1(seed + SHA1(SHA1(APassword)));
-  for i := 1 to length(Part1) do
-    Part1[i] := Chr(Ord(Part1[i]) xor Ord(Part2[i]));
-  DebugStr('hashed pw: ' + Buf2Hex(Part1));
+  for Ps := 1 to length(Part1) do
+    Part1[Ps] := Chr(Ord(Part1[PS]) xor Ord(Part2[Ps]));
+
+  DebugStr('Password seed: ' + Buf2Hex(seed));
+  DebugStr('Hashed pw: ' + Buf2Hex(Part1));
+  DebugStr('------------------');
 
   if AuthPlugin <> 'mysql_native_password' then
   begin
@@ -525,9 +618,13 @@ begin
   if AuthPlugin = 'mysql_native_password' then
   begin
 
+    FClientCapabilities := CLIENT_CLIENT_MYSQL or
+      CLIENT_LONG_FLAG or CLIENT_CONNECT_WITH_DB or CLIENT_PROTOCOL_41 or CLIENT_INTERACTIVE or
+      CLIENT_TRANSACTIONS or CLIENT_SECURE_CONNECTION or CLIENT_MULTI_STATEMENTS or CLIENT_MULTI_RESULTS;
+
     // Construct the answer handschake package
-    Buffer := #$0D#$A6#$03#$00;        // int<4> client capabilities
-    Buffer := Buffer + #0#0#0#1;       // int<4> max packet size
+    Buffer := _set_int(FClientCapabilities, 4);  // int<4> client capabilities // #$0D#$A6#$03#$00
+    Buffer := Buffer + _set_int($01000000, 4); // int<4> max packet size // #0#0#0#1
     Buffer := Buffer + #$21;           // int<1> client character collation
     Buffer := Buffer + #0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0; // string<19> reserved
     Buffer := Buffer + #0#0#0#0;       // - int<4> extended client capabilities
@@ -535,6 +632,7 @@ begin
     Buffer := Buffer + #$14 + Part1;   // - string<fix> authentication response (length is indicated by previous field)
     Buffer := Buffer + ADatabase + #0; // - string<NUL> default database name
 
+    DebugStr(Buf2Hex(Buffer));
     DebugStr('sending first packet with authentication');
     SendPacket(Buffer);
 
@@ -560,8 +658,10 @@ var
   Value: rawbytestring;
   Column: integer;
   Ps, MaxLen: uint32;
-  MySqlFieldType: enum_MYSQL_types;
+
+  sqltype: enum_MYSQL_types;
   decimals, flags, charsetnr: integer;
+
   size: uint32;
   AName: string;
   ADataType: TFieldType;
@@ -581,9 +681,10 @@ begin
   SendPacket(Buffer);
 
   Buffer := ReceivePacket(2000);
+  // if MariaDBDebug then DebugStr(buf2hex(Buffer));
   if (FLastError <> 0) then exit(False);
   if _is_error(Buffer) then exit(False);
-  if _is_eof(Buffer) then exit(True); // for COMMAND_SET_OPTION
+  if _is_eof(Buffer) then exit(True); // for COMMAND_SET_OPTION FE 00 00 02 00
   if Buffer = '' then exit(True); // no resultset
 
   Column := Ord(Buffer[1]);
@@ -599,30 +700,26 @@ begin
     if _is_eof(Buffer) then break;
 
     Ps := 1; // string<lenenc> catalog (always 'def')
-    Value := GetString(Buffer, Ps); // string<lenenc> catalog (always 'def')
+    Value := _get_str(Buffer, Ps); // string<lenenc> catalog (always 'def')
     if Value <> 'def' then;
-    Value := GetString(Buffer, Ps); // string<lenenc> schema
-    Value := GetString(Buffer, Ps); // string<lenenc> table alias
-    Value := GetString(Buffer, Ps); // string<lenenc> table
-    AName := GetString(Buffer, Ps); // string<lenenc> column alias
-    Value := GetString(Buffer, Ps); // string<lenenc> column
+    Value := _get_str(Buffer, Ps); // string<lenenc> schema
+    Value := _get_str(Buffer, Ps); // string<lenenc> table alias
+    Value := _get_str(Buffer, Ps); // string<lenenc> table
+    AName := _get_str(Buffer, Ps); // string<lenenc> column alias
+    Value := _get_str(Buffer, Ps); // string<lenenc> column
 
     ADataType := ftString; // default if error
     ASize := 1024;
     ADecimals := 0;
     if Buffer[Ps] = #$0C then // int<lenenc> length of fixed fields (=0xC)
     begin
-      Inc(Ps); // int<2> character set number
-      charsetnr := Ord(Buffer[Ps]) + Ord(Buffer[Ps + 1]) shl 8;
-      Inc(Ps, 2); // int<4> max. column size
-      size := Ord(Buffer[Ps]) + Ord(Buffer[Ps + 1]) shl 8 + Ord(Buffer[Ps + 2]) shl 16 + Ord(Buffer[Ps + 3]) shl 24; // int<4> max. column size
-      Inc(Ps, 4); // int<1> Field types
-      MySqlFieldType := enum_MYSQL_types(Buffer[Ps]); // int<1> Field types
-      Inc(Ps); // int<2> Field detail flag
-      flags := Ord(Buffer[Ps]) + Ord(Buffer[Ps + 1]) shl 8; // int<2> Field detail flag
-      Inc(Ps, 2); // int<1> decimals
-      decimals := Ord(Buffer[Ps]); // int<1> decimals
-      if not MySQLDataType(MySqlFieldType, decimals, size, flags, charsetnr, ADataType, ADecimals, ASize) then
+      Inc(Ps);
+      charsetnr := _get_int(Buffer, Ps, 2); // int<2> character set number
+      size := _get_int(Buffer, Ps, 4);      // int<4> max. column size
+      sqltype := enum_MYSQL_types(_get_int(Buffer, Ps, 1)); // int<1> Field types
+      flags := _get_int(Buffer, Ps, 2);     // int<2> Field detail flag
+      decimals := _get_int(Buffer, Ps, 1);  // int<1> decimals
+      if not MySQLDataType(sqltype, decimals, size, flags, charsetnr, ADataType, ADecimals, ASize) then
       begin
         ADataType := ftString; // default if error
         ASize := 1024;
@@ -652,7 +749,7 @@ begin
     MaxLen := Length(Buffer);
     Ps := 1;
 
-    // writeln(Buf2Hex(Buffer));
+    // DebugStr(Buf2Hex(Buffer));
     while Ps < MaxLen do
     begin
       Inc(Column);
@@ -665,7 +762,7 @@ begin
       end;
 
       // we are in TEXT protocol so result is always in text
-      Value := GetString(Buffer, Ps);
+      Value := _get_str(Buffer, Ps);
 
       case FDataset.Fields[Column].DataType of
 
@@ -717,7 +814,7 @@ begin
   ExecuteCommand(COMMAND_QUIT);
 end;
 
-procedure TMariaDBConnector.SetMultiOptions(Value: Boolean);
+procedure TMariaDBConnector.SetMultiOptions(Value: boolean);
 var
   Val: rawbytestring;
 begin

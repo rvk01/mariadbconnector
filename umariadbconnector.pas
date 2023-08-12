@@ -574,7 +574,9 @@ begin
     x := _get_int(Buffer, Ps, 4);
     x := x shl 32;
     FServerCapabilities := FServerCapabilities + x; // - int<4> server capabilities 3rd part . MariaDB specific flags /* MariaDB 10.2 or later */
-  end;
+  end
+  else
+    Inc(Ps, 4); // string<4> filler
   if (FServerCapabilities and CLIENT_SECURE_CONNECTION) <> 0 then
   begin
     //DebugStr('getting 2nd seed');

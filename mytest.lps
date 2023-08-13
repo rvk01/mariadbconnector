@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="mytest.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="65"/>
+        <CursorPos X="44" Y="77"/>
+        <UsageCount Value="51"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="umariadbconnector.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="717"/>
+        <CursorPos Y="749"/>
+        <UsageCount Value="51"/>
+        <Bookmarks Count="1">
+          <Item0 X="3" Y="806" ID="1"/>
+        </Bookmarks>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\packages\fcl-db\src\base\db.pas"/>
+        <UnitName Value="DB"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2492"/>
+        <CursorPos X="12" Y="2504"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\objpas\classes\lists.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="176"/>
+        <CursorPos Y="198"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\inc\systemh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="808"/>
+        <CursorPos X="3" Y="828"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\inc\system.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="778"/>
+        <CursorPos X="3" Y="781"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\i386\i386.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2044"/>
+        <CursorPos Y="2076"/>
+        <UsageCount Value="7"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\packages\fcl-db\src\sqldb\mysql\mysqlconn.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="235"/>
+        <CursorPos X="27" Y="236"/>
+        <UsageCount Value="8"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\win\wininc\func.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="980"/>
+        <CursorPos X="29" Y="1000"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\win\wininc\base.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="262"/>
+        <CursorPos X="6" Y="282"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\inc\astrings.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1494"/>
+        <CursorPos Y="1499"/>
+        <UsageCount Value="9"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\win\wininc\redef.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="86"/>
+        <CursorPos X="3" Y="106"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\Users\Rik\Desktop\synapse\tcpsd-169.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="42"/>
+        <CursorPos X="38" Y="56"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="mycredentials.inc"/>
+        <UnitName Value="Unit1"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="20"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\packages\fcl-json\src\jsonconf.pp"/>
+        <UnitName Value="jsonConf"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="74"/>
+        <CursorPos X="16" Y="93"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\packages\fcl-json\src\fpjson.pp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="602"/>
+        <CursorPos X="7" Y="622"/>
+        <UsageCount Value="10"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="13">
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="77" Column="26" TopLine="61"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="79" Column="11" TopLine="61"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="76" Column="43" TopLine="53"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="23" Column="6"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="77" Column="22" TopLine="57"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="76" Column="12" TopLine="61"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="82" Column="12" TopLine="61"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="76" Column="14" TopLine="61"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="78" Column="13" TopLine="61"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="80" Column="73" TopLine="61"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="78" Column="7" TopLine="58"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="76" TopLine="61"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="33"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="111" TopLine="95"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

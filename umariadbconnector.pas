@@ -61,7 +61,7 @@ type
     FWarningCount: integer;
   private
     procedure DebugStr(Log: string);
-    function _set_int(Value: uint64; Len: Integer): rawbytestring;
+    function _set_int(Value: uint64; Len: integer): rawbytestring;
     function _get_int(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): integer; // -1 = lenenc
     function _get_str(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): rawbytestring;
     function _is_error(Buffer: rawbytestring): boolean;
@@ -344,7 +344,7 @@ end;
 // https://mariadb.com/kb/en/4-server-response-packets/
 // ---------------------------
 
-function TMariaDBConnector._set_int(Value: uint64; Len: Integer): rawbytestring;
+function TMariaDBConnector._set_int(Value: uint64; Len: integer): rawbytestring;
 var
   j: byte;
 begin
@@ -523,7 +523,7 @@ var
 
   FClientCapabilities: uint64;
 
-    Part1, Part2: rawbytestring;
+  Part1, Part2: rawbytestring;
   Ps: uint32;
   x: uint64;
 begin
@@ -593,7 +593,7 @@ begin
   DebugStr('Server protocol: ' + FServerProtocol.ToString);
   DebugStr('Sserver version: ' + FServerVersion);
   DebugStr('Connection ID: ' + FConnectionId.ToString);
-  DebugStr('Server capabilities: ' + BinStr(FServerCapabilities, 64) );  // 00000000000000001111011111111110
+  DebugStr('Server capabilities: ' + BinStr(FServerCapabilities, 64));  // 00000000000000001111011111111110
   DebugStr('Server default collation: ' + FServerDefaultCollation.ToString);
   DebugStr('Status flag: ' + FStatusFlags.ToString);
   DebugStr('Plugin data length: ' + FPluginDataLength.ToString);
@@ -746,7 +746,7 @@ begin
     if _is_ok(Buffer) then break;
     if _is_eof(Buffer) then break;
 
-    FDataset.Insert;
+    FDataset.Append;
     Column := -1;
     MaxLen := Length(Buffer);
     Ps := 1;

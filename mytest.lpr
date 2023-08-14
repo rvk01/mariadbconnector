@@ -1,8 +1,6 @@
 program mytest;
 
 {$mode ObjFPC}{$H+}
-{$APPTYPE CONSOLE}
-{$codepage utf8}
 
 uses
   umariadbconnector,
@@ -21,10 +19,10 @@ uses
 
 const
   ConfigFileName = 'mycredentials.json'; // will be used for credentials
-  Server: rawbytestring = 'localhost';
-  User: rawbytestring = 'root';
-  Password: rawbytestring = 'password';
-  Database: rawbytestring = ''; // can be empty
+  Server: String = 'localhost';
+  User: String = 'root';
+  Password: String = 'password';
+  Database: String = ''; // can be empty
 
   // ---------------------------
   // Examples
@@ -51,6 +49,7 @@ var
     i, l: SizeInt;
     c: string;
   begin
+    Result := ''; // no warning
     SetLength(Result, len);
     l := 0;
     for i := 1 to len do
@@ -79,10 +78,10 @@ var
         Conf.SetValue('Password', Password);
         Conf.SetValue('Database', Database);
       end;
-      Server := Conf.GetValue('Server', Server);
-      User := Conf.GetValue('User', User);
-      Password := Conf.GetValue('Password', Password);
-      Database := Conf.GetValue('Database', Database);
+      Server := string(Conf.GetValue('Server', Server));
+      User := string(Conf.GetValue('User', User));
+      Password := string(Conf.GetValue('Password', Password));
+      Database := string(Conf.GetValue('Database', Database));
     finally
       Conf.Free;
     end;
@@ -90,8 +89,6 @@ var
 
 var
   sql: string;
-  r: string;
-  Name: string;
   i: integer;
 begin
 
@@ -100,8 +97,11 @@ begin
   MariaDbDebug := false;
 
   // SetTextCodePage(Output, DefaultSystemCodePage);
+  {$IFDEF WINDOWS}
   SetConsoleOutputCP(CP_UTF8);
-  SetTextCodePage(Output, 0 { CP_UTF8 });  // why 0 ??
+  SetTextCodePage(Output, CP_UTF8);  // why 0 ??
+  SetTextCodePage(Output, 0);  // why 0 ??
+  {$ENDIF}
 
   MDB := TMariaDBConnector.Create;
   try
@@ -128,22 +128,28 @@ begin
     DoSQL('CREATE DATABASE connector_test');
     DoSQL('use connector_test');
     sql := 'create table if not exists test (';
-    sql := sql + '  a    bigint       auto_increment primary key,';
-    sql := sql + '  name varchar(20) charset utf8,';
-    sql := sql + '  key name (name(5))';
+    sql := sql + ' id bigint auto_increment primary key,';
+    sql := sql + ' name varchar(20) charset utf8,';
+    sql := sql + ' key name (name(5))';
     sql := sql + ') engine=InnoDB default charset latin1;';
     DoSQL(sql);
 
-    for i := 1 to 6 do
+    // insert 26 records
+    for i := 1 to 26 do
     begin
-      Name := rand;
-      // writeln(rand);
-      DoSQL('INSERT INTO test (name) VALUES (''' + rand + ''');');
+      sql := rand;
+      writeln((sql));
+      writeln(Buf2Hex(sql));
+      DoSQL('INSERT INTO test (name) VALUES (''' + sql + ''');');
     end;
 
+
     {
+
+    TEST MULTI COMMANDS - doesn't work yet
+
     sql := '';
-    for i := 1 to 3 do sql := sql + 'INSERT INTO test (name) VALUES (''aa''); ' + #13#10;
+    for i := 1 to 26 do DoSQL('INSERT INTO test (name) VALUES (''' + rand + ''');');
     writeln('----------');
     writeln(sql);
     writeln('----------');
@@ -152,7 +158,9 @@ begin
     DoSQL(sql);
     }
 
-    if MDB.Query('select * from test') then
+    sql := 'select * from test where id>=5 and id<=11';
+    writeln(sql);
+    if MDB.Query(sql) then
     begin
       if MDB.Dataset.Active then
       begin

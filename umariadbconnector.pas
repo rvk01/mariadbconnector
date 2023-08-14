@@ -72,7 +72,7 @@ type
     destructor Destroy; override;
     procedure SendPacket(Buffer: rawbytestring);
     function ReceivePacket(Timeout: integer): rawbytestring;
-    function ConnectAndLogin(AServer, APort, AUser, APassword, ADatabase: rawbytestring): boolean;
+    function ConnectAndLogin(AServer, APort, AUser, APassword, ADatabase: String): boolean;
     function ExecuteCommand(Command: MySqlCommands; SQL: rawbytestring = ''): boolean;
     function Query(SQL: string): boolean;
     function Ping: boolean;
@@ -83,6 +83,7 @@ type
     property Dataset: TBufDataset read FDataset;
   end;
 
+  function Buf2Hex(Buffer: rawbytestring): rawbytestring;
 
 implementation
 
@@ -507,7 +508,7 @@ end;
 // https://mariadb.com/kb/en/connection/
 // ---------------------------
 
-function TMariaDBConnector.ConnectAndLogin(AServer, APort, AUser, APassword, ADatabase: rawbytestring): boolean;
+function TMariaDBConnector.ConnectAndLogin(AServer, APort, AUser, APassword, ADatabase: String): boolean;
 var
   AuthPlugin: string;
   Buffer: rawbytestring = '';
@@ -765,6 +766,9 @@ begin
 
       // we are in TEXT protocol so result is always in text
       Value := _get_str(Buffer, Ps);
+      // Value :=  UTF8Encode(Value);
+      writeln((Value));
+      writeln(Buf2Hex(Value));
 
       case FDataset.Fields[Column].DataType of
 

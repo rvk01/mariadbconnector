@@ -8,18 +8,18 @@
       <Unit>
         <Filename Value="mytest.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="120"/>
-        <CursorPos X="29" Y="159"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="144"/>
+        <CursorPos X="10" Y="161"/>
         <UsageCount Value="53"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="umariadbconnector.pas"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <TopLine Value="748"/>
-        <CursorPos X="10" Y="769"/>
+        <CursorPos X="10" Y="770"/>
         <UsageCount Value="53"/>
         <Bookmarks Count="1">
           <Item0 X="3" Y="810" ID="1"/>

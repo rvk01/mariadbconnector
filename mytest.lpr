@@ -138,8 +138,8 @@ begin
     for i := 1 to 26 do
     begin
       sql := rand;
-      writeln((sql));
-      writeln(Buf2Hex(sql));
+      // writeln((sql));
+      // writeln(Buf2Hex(sql));
       DoSQL('INSERT INTO test (name) VALUES (''' + sql + ''');');
     end;
 

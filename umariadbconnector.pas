@@ -767,8 +767,8 @@ begin
       // we are in TEXT protocol so result is always in text
       Value := _get_str(Buffer, Ps);
       // Value :=  UTF8Encode(Value);
-      writeln((Value));
-      writeln(Buf2Hex(Value));
+      // writeln((Value));
+      // writeln(Buf2Hex(Value));
 
       case FDataset.Fields[Column].DataType of
 

@@ -5,13 +5,6 @@ program mytest;
 uses
   umariadbconnector,
   DB,
-  {$IFDEF UNIX}
-    {$IFDEF UseCThreads}
-    cthreads,
-    {$ENDIF}
-  {Widestring manager needed for widestring support}
-  cwstring,
-  {$ENDIF}
   {$IFDEF WINDOWS}
     Windows, {for setconsoleoutputcp}
   {$ENDIF}
@@ -101,6 +94,7 @@ var
 var
   sql: string;
   i: integer;
+  cnt: Integer;
 begin
 
   GetCredentials;
@@ -146,14 +140,18 @@ begin
     sql := sql + ') engine=InnoDB default charset latin1;';
     DoSQL(sql);
 
-    // insert 26 records
-    for i := 1 to 8 do
+    cnt := 6000;
+    writeln(Format('Inserting %d records', [cnt]));
+
+    for i := 1 to cnt do
     begin
+      if i mod (cnt div 100) = 0 then write(#13, i div (cnt div 100), '%');
       sql := rand;
       // writeln((sql));
       // writeln(Buf2Hex(sql));
       DoSQL('INSERT INTO test (name) VALUES (''' + sql + ''');');
     end;
+    writeln(#13, 'done');
 
     {
 
@@ -169,9 +167,15 @@ begin
     }
 
     sql := 'select * from test where id>=5 and id<=11';
-    sql := 'select * from test';
+    sql := 'select * from test order by id desc';
     writeln(sql);
-    if not DoSql(sql) then
+
+    // if not MDB.DoSQL(sql) then ;
+
+    writeln('Retrieving records');
+    if MDB.Query(sql) then
+      writeln(Format('Number of records %d', [MDB.Dataset.RecordCount]))
+    else
       writeln('Error doing select: ', MDB.LastError, ' ', MDB.LastErrorDesc);
 
     DoSQL('DROP TABLE IF EXISTS test;');

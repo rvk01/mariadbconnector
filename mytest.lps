@@ -9,20 +9,18 @@
         <Filename Value="mytest.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="91"/>
-        <CursorPos Y="109"/>
-        <UsageCount Value="58"/>
+        <UsageCount Value="64"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="umariadbconnector.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="899"/>
-        <CursorPos Y="919"/>
-        <UsageCount Value="58"/>
+        <TopLine Value="353"/>
+        <CursorPos X="42" Y="364"/>
+        <UsageCount Value="64"/>
         <Bookmarks Count="1">
-          <Item0 X="56" Y="918" ID="1"/>
+          <Item0 Y="417" ID="1"/>
         </Bookmarks>
         <Loaded Value="True"/>
       </Unit>
@@ -30,8 +28,8 @@
         <Filename Value="Q:\dev32\fpc\packages\fcl-db\src\base\db.pas"/>
         <UnitName Value="DB"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="2492"/>
-        <CursorPos X="12" Y="2504"/>
+        <TopLine Value="2496"/>
+        <CursorPos X="21" Y="2516"/>
         <UsageCount Value="10"/>
       </Unit>
       <Unit>
@@ -39,75 +37,75 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="176"/>
         <CursorPos Y="198"/>
-        <UsageCount Value="7"/>
+        <UsageCount Value="5"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\inc\systemh.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="550"/>
         <CursorPos X="36" Y="573"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\inc\system.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="1666"/>
         <CursorPos Y="1686"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\i386\i386.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="2044"/>
         <CursorPos Y="2076"/>
-        <UsageCount Value="7"/>
+        <UsageCount Value="5"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\packages\fcl-db\src\sqldb\mysql\mysqlconn.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="235"/>
         <CursorPos X="27" Y="236"/>
-        <UsageCount Value="8"/>
+        <UsageCount Value="6"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\win\wininc\func.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="980"/>
         <CursorPos X="29" Y="1000"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="7"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\win\wininc\base.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="262"/>
         <CursorPos X="6" Y="282"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="7"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\inc\astrings.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="152"/>
         <CursorPos Y="172"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\win\wininc\redef.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="86"/>
         <CursorPos X="3" Y="106"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="C:\Users\Rik\Desktop\synapse\tcpsd-169.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="42"/>
         <CursorPos X="38" Y="56"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="mycredentials.inc"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="18"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\packages\fcl-json\src\jsonconf.pp"/>
@@ -115,30 +113,29 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="74"/>
         <CursorPos X="97" Y="93"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\packages\fcl-json\src\fpjson.pp"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="602"/>
         <CursorPos X="7" Y="622"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\packages\paszlib\src\zipper.pp"/>
         <UnitName Value="Zipper"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="23" Y="24"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\packages\paszlib\src\zstream.pp"/>
         <UnitName Value="ZStream"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="326"/>
         <CursorPos Y="356"/>
-        <UsageCount Value="11"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\packages\paszlib\src\zinflate.pas"/>
@@ -146,83 +143,89 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="262"/>
         <CursorPos X="15" Y="294"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\objpas\classes\classesh.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="1098"/>
         <CursorPos X="15" Y="1115"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\objpas\classes\streams.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="959"/>
         <CursorPos X="7" Y="981"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\inc\text.inc"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="910"/>
         <CursorPos Y="929"/>
-        <UsageCount Value="11"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\packages\fcl-db\src\base\fields.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2150"/>
+        <CursorPos Y="2170"/>
+        <UsageCount Value="10"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="28">
+    <JumpHistory HistoryIndex="14">
       <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="390" TopLine="369"/>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="144" Column="32" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="167" Column="29" TopLine="144"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="391" TopLine="369"/>
+        <Caret Line="77" Column="20" TopLine="60"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="392" TopLine="369"/>
+        <Caret Line="357" Column="36" TopLine="333"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="175" TopLine="147"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="393" TopLine="369"/>
+        <Caret Line="783" Column="20" TopLine="749"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="387" TopLine="369"/>
+        <Caret Line="77" Column="14" TopLine="58"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="389" TopLine="369"/>
+        <Caret Line="358" Column="10" TopLine="328"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="390" TopLine="369"/>
+        <Caret Line="336" Column="131" TopLine="328"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="391" TopLine="369"/>
+        <Caret Line="768" Column="18" TopLine="743"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="392" TopLine="369"/>
+        <Caret Line="391" Column="45" TopLine="377"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="393" TopLine="369"/>
+        <Caret Line="753" TopLine="749"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="387" TopLine="369"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="332" TopLine="320"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="363" Column="48" TopLine="339"/>
+        <Caret Line="362" TopLine="343"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
@@ -230,60 +233,6 @@
       <Position>
         <Filename Value="umariadbconnector.pas"/>
         <Caret Line="285" Column="31" TopLine="253"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="371" Column="38" TopLine="339"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="427" TopLine="395"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="880" Column="17" TopLine="848"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="881" Column="17" TopLine="849"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="285" Column="31" TopLine="253"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="40" TopLine="16"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="50" Column="25" TopLine="34"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="445" Column="40" TopLine="424"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="918" TopLine="885"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="172" Column="27" TopLine="151"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="37" Column="25" TopLine="5"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="137" Column="21" TopLine="105"/>
       </Position>
     </JumpHistory>
     <RunParams>

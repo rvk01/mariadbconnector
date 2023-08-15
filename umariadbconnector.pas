@@ -318,70 +318,95 @@ var
   Len, uLen: integer;
   Num: integer;
   Stream: TMemoryStream;
+  Buf: rawByteString;
+  AnotherPacket: Boolean;
 begin
   // https://mariadb.com/kb/en/0-packet/
   // https://mariadb.com/kb/en/com_query/
   // https://mariadb.com/kb/en/clientserver-protocol/
 
-  if FConnected and FUseCompression then
+  // we use a PacketBuffer
+  // When no compression we read buffer directly into PacketBuffer
+  // When compression we read compression buffer and extract packets into PacketBuffer
+
+  if Length(packetbuffer) = 0 then // we want new packets
   begin
 
-    if Length(packetbuffer) = 0 then // we want new packets
+    // https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_compression_packet.html#sect_protocol_basic_compression_packet_compressed_payload
+    // why per $4000 bytes uncompressed ??
+
+    if FConnected and FUseCompression then
     begin
 
-      SetLength(Buffer, 7);
-      Rc := Sock.RecvBufferEx(@Buffer[1], 7, Timeout);
-      if Rc <> 7 then
-      begin
-        FLastError := Sock.LastError;
-        FLastErrorDesc := Sock.LastErrorDesc;
-        exit('');
-      end;
-      Ps := 1;
-      Len := _get_int(Buffer, Ps, 3);
-      Num := _get_int(Buffer, Ps, 1);
-      uLen := _get_int(Buffer, Ps, 3);
+      Buffer := '';
+      AnotherPacket := false;
 
-      SetLength(Buffer, Len);
-      Rc := Sock.RecvBufferEx(@Buffer[1], Len, Timeout);
-      if Rc <> Len then
-      begin
-        FLastError := Sock.LastError;
-        FLastErrorDesc := Sock.LastErrorDesc;
-        exit('');
-      end;
+      repeat // multiple compressed packages possible until eof
 
-      if uLen = 0 then // uncompressed package
-      begin
-        Len := _get_int(Buffer, Ps, 3);
-        Num := _get_int(Buffer, Ps, 1);
-        Result := Copy(Buffer, Ps); // rest
-        exit;
-      end;
-
-      // zlib uncompres
-      Stream := TMemoryStream.Create;
-      try
-        Stream.Write(@Buffer[1], Length(Buffer));
-        SetLength(Buffer, uLen);
-        Stream.Position := 0;
-        with TDecompressionStream.Create(Stream, False) do
+        // compression 7 bytes header
+        SetLength(Buf, 7);
+        Rc := Sock.RecvBufferEx(@Buf[1], 7, Timeout);
+        if Rc <> 7 then
         begin
-          Len := Read(Pointer(Buffer)^, uLen);
-          if Len <> uLen then
-          begin
-            FLastError := -1;
-            FLastErrorDesc := 'Error wrong size';
-            exit('');
-          end;
+          FLastError := Sock.LastError;
+          FLastErrorDesc := Sock.LastErrorDesc;
+          exit('');
         end;
-      finally
-        Stream.Free;
-      end;
+        Ps := 1;
+        Len := _get_int(Buf, Ps, 3);
+        Num := _get_int(Buf, Ps, 1);
+        uLen := _get_int(Buf, Ps, 3);
 
-      // read buffer to PacketBuffer
+        // if uLen > 200 then
+        // writeln(uLen.ToString);  //   16384   = $4000
+
+        // compressed packets
+        SetLength(Buf, Len);
+        Rc := Sock.RecvBufferEx(@Buf[1], Len, Timeout);
+        if Rc <> Len then
+        begin
+          FLastError := Sock.LastError;
+          FLastErrorDesc := Sock.LastErrorDesc;
+          exit('');
+        end;
+
+        if uLen = 0 then // uLen = 0 then uncompressed package
+        begin
+          Len := _get_int(Buf, Ps, 3);
+          Num := _get_int(Buf, Ps, 1);
+          Result := Copy(Buf, Ps); // rest
+          exit;
+        end;
+
+        // zlib uncompres data
+        Stream := TMemoryStream.Create;
+        try
+          Stream.Write(@Buf[1], Length(Buf));
+          SetLength(Buf, uLen); // increase buffersize to uncompressed length
+          Stream.Position := 0;
+
+          with TDecompressionStream.Create(Stream, False) do
+          begin
+            Len := Read(Pointer(Buf)^, uLen);
+            if Len <> uLen then
+            begin
+              FLastError := -1;
+              FLastErrorDesc := 'Error wrong size';
+              exit('');
+            end;
+          end;
+        finally
+          Stream.Free;
+        end;
+
+        Buffer := Buffer + Buf;
+        AnotherPacket := (uLen = $4000);  // ? why $4000 ?
+
+      until not AnotherPacket; // _is_error(Bf) or _is_ok(Bf) or _is_eof(Bf);
+
+      // extract all packets into PacketBuffer
       Ps := 1;
-      while Ps < uLen do
+      while Ps < Length(Buffer) do
       begin
         Len := _get_int(Buffer, Ps, 3);
         Num := _get_int(Buffer, Ps, 1);
@@ -390,46 +415,53 @@ begin
         Insert(Bf, PacketBuffer, Length(PacketBuffer));
       end;
 
+    end
+    else
+    begin
+
+      // No compression. Just read buffer directly into PacketBuffer
+      SetLength(Buffer, 4);
+      Rc := Sock.RecvBufferEx(@Buffer[1], 4, Timeout);
+      if Rc <> 4 then
+      begin
+        FLastError := Sock.LastError;
+        FLastErrorDesc := Sock.LastErrorDesc;
+        exit('');
+      end;
+      Ps := 1;
+      Len := _get_int(Buffer, Ps, 3);
+      Num := _get_int(Buffer, Ps, 1);
+
+      if (Num <> FPackNumber) or (Len = 0) then
+      begin
+        FLastError := -1;
+        FLastErrorDesc := 'Got packets out of order of wrong size';
+        exit('');
+      end;
+
+      Inc(FPackNumber); // we only want a correct packet numer next time
+
+      Buffer := '';
+      SetLength(Buffer, Len);
+      if Sock.RecvBufferEx(@Buffer[1], Len, Timeout) <> Len then
+      begin
+        FLastError := -1;
+        FLastErrorDesc := 'Did not receive complete packet';
+        exit('');
+      end;
+      Insert(Buffer, PacketBuffer, Length(PacketBuffer));
+
     end;
 
+  end;
+
+  Buffer := '';
+  if Length(packetbuffer) > 0 then
+  begin
     // we still have packets in the PacketBuffer, serve them first
     Result := PacketBuffer[0];
     Delete(PacketBuffer, 0, 1);
-    exit;
-
   end;
-
-  SetLength(Buffer, 4);
-  Rc := Sock.RecvBufferEx(@Buffer[1], 4, Timeout);
-  if Rc <> 4 then
-  begin
-    FLastError := Sock.LastError;
-    FLastErrorDesc := Sock.LastErrorDesc;
-    exit('');
-  end;
-  Ps := 1;
-  Len := _get_int(Buffer, Ps, 3);
-  Num := _get_int(Buffer, Ps, 1);
-
-  if (Num <> FPackNumber) or (Len = 0) then
-  begin
-    FLastError := -1;
-    FLastErrorDesc := 'Got packets out of order of wrong size';
-    exit('');
-  end;
-
-  Inc(FPackNumber); // we only want a correct packet numer next time
-
-  Buffer := '';
-  SetLength(Buffer, Len);
-  if Sock.RecvBufferEx(@Buffer[1], Len, Timeout) <> Len then
-  begin
-    FLastError := -1;
-    FLastErrorDesc := 'Did not receive complete packet';
-    exit('');
-  end;
-
-  Result := Buffer;
 
 end;
 
@@ -737,7 +769,7 @@ begin
 
     // Construct the answer handschake package
     Buffer := _set_int(FClientCapabilities, 4);  // int<4> client capabilities // #$0D#$A6#$03#$00
-    Buffer := Buffer + _set_int($01000000, 4); // int<4> max packet size // #0#0#0#1
+    Buffer := Buffer + _set_int($01000000, 4); // int<4> max packet size 16MB // #0#0#0#1
     Buffer := Buffer + #$21;           // int<1> client character collation
     Buffer := Buffer + #0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0; // string<19> reserved
     Buffer := Buffer + #0#0#0#0;       // - int<4> extended client capabilities
@@ -881,9 +913,6 @@ begin
 
       // we are in TEXT protocol so result is always in text
       Value := _get_str(Buffer, Ps);
-      // Value :=  UTF8Encode(Value);
-      // writeln((Value));
-      // writeln(Buf2Hex(Value));
 
       case FDataset.Fields[Column].DataType of
 

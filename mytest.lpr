@@ -37,6 +37,17 @@ var
     Result := MDB.Query(SQL);
     if not Result then writeln('Error: ', SQL, ' ', MDB.LastError, ' ', MDB.LastErrorDesc);
 
+    if MDB.Dataset.Active then
+    begin
+      MDB.Dataset.First;
+      while not MDB.Dataset.EOF do
+      begin
+        for F in MDB.Dataset.Fields do Write(format('len:%d '#9' %s'#9#9, [Length(F.AsString), F.AsString]));
+        writeln;
+        MDB.Dataset.Next;
+      end;
+    end;
+
   end;
 
 
@@ -114,15 +125,16 @@ begin
 
     Writeln('We have a connection');
 
-    {
     if MDB.Ping then
       writeln('Ping response ok')
     else
       writeln('Error on ping');
-    MDB.SetMultiOptions(true);
-    if MDB.Query('use cis') then;
+
+    DoSQL('show databases');
+
+    // MDB.SetMultiOptions(true);
+    // if MDB.Query('use cis') then;
     // if MDB.Query('use cis; use mysql;') then;
-    }
 
     DoSQL('DROP DATABASE IF EXISTS connector_test;');
     DoSQL('CREATE DATABASE connector_test');
@@ -135,14 +147,13 @@ begin
     DoSQL(sql);
 
     // insert 26 records
-    for i := 1 to 26 do
+    for i := 1 to 8 do
     begin
       sql := rand;
       // writeln((sql));
       // writeln(Buf2Hex(sql));
       DoSQL('INSERT INTO test (name) VALUES (''' + sql + ''');');
     end;
-
 
     {
 
@@ -153,27 +164,14 @@ begin
     writeln('----------');
     writeln(sql);
     writeln('----------');
-    MariaDbDebug := True;
     MDB.SetMultiOptions(true);
     DoSQL(sql);
     }
 
     sql := 'select * from test where id>=5 and id<=11';
+    sql := 'select * from test';
     writeln(sql);
-    if MDB.Query(sql) then
-    begin
-      if MDB.Dataset.Active then
-      begin
-        MDB.Dataset.First;
-        while not MDB.Dataset.EOF do
-        begin
-          for F in MDB.Dataset.Fields do Write(format('%s  '#9' len:%d '#9#9, [F.AsString, Length(F.AsString)]));
-          writeln;
-          MDB.Dataset.Next;
-        end;
-      end;
-    end
-    else
+    if not DoSql(sql) then
       writeln('Error doing select: ', MDB.LastError, ' ', MDB.LastErrorDesc);
 
     DoSQL('DROP TABLE IF EXISTS test;');

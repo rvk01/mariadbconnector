@@ -8,7 +8,7 @@ interface
 uses
   SysUtils, blcksock, synacode,
   strutils, DB, BufDataset,
-  typinfo, DateUtils, Math;
+  typinfo, DateUtils, Math, Classes, ZStream;
 
 const
   MariaDbDebug: boolean = False;
@@ -59,7 +59,10 @@ type
     FLastInsertId: integer;
     FServerStatus: integer;
     FWarningCount: integer;
+    FConnected: boolean;
+    FUseCompression: boolean;
   private
+    PacketBuffer: array of rawbytestring;
     procedure DebugStr(Log: string);
     function _set_int(Value: uint64; Len: integer): rawbytestring;
     function _get_int(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): integer; // -1 = lenenc
@@ -72,7 +75,7 @@ type
     destructor Destroy; override;
     procedure SendPacket(Buffer: rawbytestring);
     function ReceivePacket(Timeout: integer): rawbytestring;
-    function ConnectAndLogin(AServer, APort, AUser, APassword, ADatabase: String): boolean;
+    function ConnectAndLogin(AServer, APort, AUser, APassword, ADatabase: string): boolean;
     function ExecuteCommand(Command: MySqlCommands; SQL: rawbytestring = ''): boolean;
     function Query(SQL: string): boolean;
     function Ping: boolean;
@@ -81,9 +84,11 @@ type
     property LastError: integer read FLastError;
     property LastErrorDesc: string read FLastErrorDesc;
     property Dataset: TBufDataset read FDataset;
+    property Connected: boolean read FConnected;
+    property UseCompression: boolean read FUseCompression;
   end;
 
-  function Buf2Hex(Buffer: rawbytestring): rawbytestring;
+function Buf2Hex(Buffer: rawbytestring): rawbytestring;
 
 implementation
 
@@ -263,6 +268,8 @@ begin
   FDataset := TBufDataset.Create(nil);
   Sock := TTCPBlockSocket.Create;
   Sock.ConnectionTimeout := 2000;
+  FUseCompression := True;
+  FConnected := True;
 end;
 
 destructor TMariaDBConnector.Destroy;
@@ -285,38 +292,124 @@ end;
 
 procedure TMariaDBConnector.SendPacket(Buffer: rawbytestring);
 var
-  LenPackNum: rawbytestring; // always 4 bytes;
   Len: integer;
 begin
   // make sure FPackNumber is correct
   Len := Length(Buffer);
-  LenPackNum := Chr(Len and $FF) + Chr((Len and $FF00) shr 8) + Chr((Len and $FF0000) shr 16);
-  LenPackNum := LenPackNum + Chr(FPackNumber);
-  Buffer := LenPackNum + Buffer;
+  Buffer := _set_int(Len, 3) + Chr(FPackNumber) + Buffer;
+
+  if FConnected and FUseCompression then
+  begin
+    Len := Length(Buffer);
+    Buffer := _set_int(Len, 3) + Chr(FPackNumber) + _set_int(0, 3) + Buffer;
+    // currently we only do compression for receiving, not sending
+  end;
+
   Sock.SendString(Buffer);
   Inc(FPackNumber);
+
 end;
 
 function TMariaDBConnector.ReceivePacket(Timeout: integer): rawbytestring;
 var
-  LenPackNum: array[0..3] of byte; // always 4 bytes;
+  Buffer, Bf: rawbytestring;
   Rc: integer;
-  Len: integer;
+  Ps: uint32;
+  Len, uLen: integer;
   Num: integer;
-  Buffer: rawbytestring;
+  Stream: TMemoryStream;
 begin
   // https://mariadb.com/kb/en/0-packet/
   // https://mariadb.com/kb/en/com_query/
   // https://mariadb.com/kb/en/clientserver-protocol/
-  Rc := Sock.RecvBufferEx(@LenPackNum, 4, Timeout);
+
+  if FConnected and FUseCompression then
+  begin
+
+    if Length(packetbuffer) = 0 then // we want new packets
+    begin
+
+      SetLength(Buffer, 7);
+      Rc := Sock.RecvBufferEx(@Buffer[1], 7, Timeout);
+      if Rc <> 7 then
+      begin
+        FLastError := Sock.LastError;
+        FLastErrorDesc := Sock.LastErrorDesc;
+        exit('');
+      end;
+      Ps := 1;
+      Len := _get_int(Buffer, Ps, 3);
+      Num := _get_int(Buffer, Ps, 1);
+      uLen := _get_int(Buffer, Ps, 3);
+
+      SetLength(Buffer, Len);
+      Rc := Sock.RecvBufferEx(@Buffer[1], Len, Timeout);
+      if Rc <> Len then
+      begin
+        FLastError := Sock.LastError;
+        FLastErrorDesc := Sock.LastErrorDesc;
+        exit('');
+      end;
+
+      if uLen = 0 then // uncompressed package
+      begin
+        Len := _get_int(Buffer, Ps, 3);
+        Num := _get_int(Buffer, Ps, 1);
+        Result := Copy(Buffer, Ps); // rest
+        exit;
+      end;
+
+      // zlib uncompres
+      Stream := TMemoryStream.Create;
+      try
+        Stream.Write(@Buffer[1], Length(Buffer));
+        SetLength(Buffer, uLen);
+        Stream.Position := 0;
+        with TDecompressionStream.Create(Stream, False) do
+        begin
+          Len := Read(Pointer(Buffer)^, uLen);
+          if Len <> uLen then
+          begin
+            FLastError := -1;
+            FLastErrorDesc := 'Error wrong size';
+            exit('');
+          end;
+        end;
+      finally
+        Stream.Free;
+      end;
+
+      // read buffer to PacketBuffer
+      Ps := 1;
+      while Ps < uLen do
+      begin
+        Len := _get_int(Buffer, Ps, 3);
+        Num := _get_int(Buffer, Ps, 1);
+        Bf := Copy(Buffer, Ps, Len);
+        Inc(Ps, Len);
+        Insert(Bf, PacketBuffer, Length(PacketBuffer));
+      end;
+
+    end;
+
+    // we still have packets in the PacketBuffer, serve them first
+    Result := PacketBuffer[0];
+    Delete(PacketBuffer, 0, 1);
+    exit;
+
+  end;
+
+  SetLength(Buffer, 4);
+  Rc := Sock.RecvBufferEx(@Buffer[1], 4, Timeout);
   if Rc <> 4 then
   begin
     FLastError := Sock.LastError;
     FLastErrorDesc := Sock.LastErrorDesc;
     exit('');
   end;
-  Num := LenPackNum[3];
-  Len := LenPackNum[0] + LenPackNum[1] shl 8 + LenPackNum[2] shl 16;
+  Ps := 1;
+  Len := _get_int(Buffer, Ps, 3);
+  Num := _get_int(Buffer, Ps, 1);
 
   if (Num <> FPackNumber) or (Len = 0) then
   begin
@@ -508,11 +601,12 @@ end;
 // https://mariadb.com/kb/en/connection/
 // ---------------------------
 
-function TMariaDBConnector.ConnectAndLogin(AServer, APort, AUser, APassword, ADatabase: String): boolean;
+function TMariaDBConnector.ConnectAndLogin(AServer, APort, AUser, APassword, ADatabase: string): boolean;
 var
   AuthPlugin: string;
   Buffer: rawbytestring = '';
   Seed: rawbytestring;
+  OldCompression: boolean;
 
   FServerProtocol: integer;
   FServerVersion: rawbytestring;
@@ -531,6 +625,8 @@ begin
   Result := False;
   if AServer = '' then AServer := '127.0.0.1';
   if APort = '' then APort := '3306';
+
+  FConnected := False;
 
   Sock.Connect(AServer, APort);
   if Sock.LastError <> 0 then
@@ -590,6 +686,8 @@ begin
     AuthPlugin := _get_str(Buffer, Ps, 0); // string<NUL> authentication plugin name
   end;
 
+  if (FServerCapabilities and CLIENT_COMPRESS) = 0 then FUseCompression := False;
+
   DebugStr('------------------');
   DebugStr('Server protocol: ' + FServerProtocol.ToString);
   DebugStr('Sserver version: ' + FServerVersion);
@@ -599,6 +697,9 @@ begin
   DebugStr('Status flag: ' + FStatusFlags.ToString);
   DebugStr('Plugin data length: ' + FPluginDataLength.ToString);
   DebugStr('Authentication plugin: ' + AuthPlugin);
+  if FUseCompression then DebugStr('Using compression')
+  else
+    DebugStr('Not using compression');
   DebugStr('------------------');
 
   // SHA1( password )    XOR    SHA1( seed + SHA1( SHA1( password ) ) )
@@ -621,9 +722,18 @@ begin
   if AuthPlugin = 'mysql_native_password' then
   begin
 
-    FClientCapabilities := CLIENT_CLIENT_MYSQL or
-      CLIENT_LONG_FLAG or CLIENT_CONNECT_WITH_DB or CLIENT_PROTOCOL_41 or CLIENT_INTERACTIVE or
-      CLIENT_TRANSACTIONS or CLIENT_SECURE_CONNECTION or CLIENT_MULTI_STATEMENTS or CLIENT_MULTI_RESULTS;
+    FClientCapabilities :=
+      CLIENT_CLIENT_MYSQL or
+      CLIENT_LONG_FLAG or
+      CLIENT_CONNECT_WITH_DB or
+      CLIENT_PROTOCOL_41 or
+      CLIENT_INTERACTIVE or
+      CLIENT_TRANSACTIONS or
+      CLIENT_SECURE_CONNECTION or
+      CLIENT_MULTI_STATEMENTS or
+      CLIENT_MULTI_RESULTS;
+
+    if FUseCompression then FClientCapabilities := FClientCapabilities or CLIENT_COMPRESS;
 
     // Construct the answer handschake package
     Buffer := _set_int(FClientCapabilities, 4);  // int<4> client capabilities // #$0D#$A6#$03#$00
@@ -637,14 +747,19 @@ begin
 
     DebugStr(Buf2Hex(Buffer));
     DebugStr('sending first packet with authentication');
+
     SendPacket(Buffer);
 
     // we need an answer
     Buffer := ReceivePacket(5000);
     if (FLastError <> 0) then exit(False);
-
     if _is_error(Buffer) then exit(False);
-    if _is_ok(Buffer) then exit(True);
+
+    if _is_ok(Buffer) then
+    begin
+      FConnected := True;
+      exit(True);
+    end;
 
   end;
 end;
@@ -800,7 +915,7 @@ begin
 
   until (Buffer = ''); // never happen, we get eof, ok or error first
 
-  DebugStr('Data copied to Dataset');
+  DebugStr(Format('Data copied to Dataset (%d records)', [Dataset.RecordCount]));
 
 end;
 

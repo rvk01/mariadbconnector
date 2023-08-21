@@ -1,7 +1,6 @@
 unit umariadbconnector;
 
-{$mode ObjFPC}{$H+}
-{.$WARN 5091 off : Local variable "$1" of a managed type does not seem to be initialized}
+{$MODE OBJFPC}{$H+}
 
 interface
 
@@ -65,8 +64,8 @@ type
     PacketBuffer: array of rawbytestring;
     procedure DebugStr(Log: string);
     function _set_int(Value: uint64; Len: integer): rawbytestring;
-    function _get_int(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): integer; // -1 = lenenc
-    function _get_str(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): rawbytestring;
+    function _get_int(Buffer: rawbytestring; var Ps: integer; Len: integer = -1): uint64; // -1 = lenenc
+    function _get_str(Buffer: rawbytestring; var Ps: integer; Len: integer = -1): rawbytestring;
     function _is_error(Buffer: rawbytestring): boolean;
     function _is_ok(Buffer: rawbytestring): boolean;
     function _is_eof(Buffer: rawbytestring): boolean;
@@ -124,21 +123,21 @@ const
   BINCMP_FLAG = 131072;         // Intern: Used by sql_yacc
 
   // Server and Client Capabilities
-  CLIENT_CLIENT_MYSQL = 1;             // new more secure passwords
+  CLIENT_CLIENT_MYSQL = 1;              // new more secure passwords
   CLIENT_FOUND_ROWS = 2;                // Found instead of affected rows
-  CLIENT_LONG_FLAG = 4;               // Get all column flags
+  CLIENT_LONG_FLAG = 4;                 // Get all column flags
   CLIENT_CONNECT_WITH_DB = 8;           // One can specify db on connect
-  CLIENT_NO_SCHEMA = 16;              // Don't allow database.table.column
-  CLIENT_COMPRESS = 32;               // Can use compression protocol
-  CLIENT_ODBC = 64;                   // Odbc client
+  CLIENT_NO_SCHEMA = 16;                // Don't allow database.table.column
+  CLIENT_COMPRESS = 32;                 // Can use compression protocol
+  CLIENT_ODBC = 64;                     // ODBC client
   CLIENT_LOCAL_FILES = 128;             // Can use LOAD DATA LOCAL
   CLIENT_IGNORE_SPACE = 256;            // Ignore spaces before '('
   CLIENT_PROTOCOL_41 = 1 shl 9;         // New 4.1 protocol
   CLIENT_INTERACTIVE = 1 shl 10;        // This is an interactive client
   CLIENT_SSL = 1 shl 11;                // Switch to SSL after handshake
-  CLIENT_IGNORE_SIGPIPE = 1 shl 12;       // IGNORE sigpipes
-  CLIENT_TRANSACTIONS = 1 shl 13;         // Client knows about transactions
-  CLIENT_RESERVED = 1 shl 14;            // Old flag for 4.1 protocol
+  CLIENT_IGNORE_SIGPIPE = 1 shl 12;     // IGNORE sigpipes
+  CLIENT_TRANSACTIONS = 1 shl 13;       // Client knows about transactions
+  CLIENT_RESERVED = 1 shl 14;           // Old flag for 4.1 protocol
   CLIENT_SECURE_CONNECTION = 1 shl 15;  // Old flag for 4.1 authentication
   CLIENT_MULTI_STATEMENTS = 1 shl 16;   // Enable/disable multi-stmt support
   CLIENT_MULTI_RESULTS = 1 shl 17;      // Enable/disable multi-results
@@ -185,19 +184,19 @@ type
     MYSQL_TYPE_DATETIME2,
     MYSQL_TYPE_TIME2,
     MYSQL_TYPE_TYPED_ARRAY, // Used for replication only
-    MYSQL_TYPE_INVALID := 243,
-    MYSQL_TYPE_BOOL := 244, // Currently just a placeholder
-    MYSQL_TYPE_JSON := 245,
-    MYSQL_TYPE_NEWDECIMAL := 246,
-    MYSQL_TYPE_ENUM := 247,
-    MYSQL_TYPE_SET := 248,
-    MYSQL_TYPE_TINY_BLOB := 249,
-    MYSQL_TYPE_MEDIUM_BLOB := 250,
-    MYSQL_TYPE_LONG_BLOB := 251,
-    MYSQL_TYPE_BLOB := 252,
-    MYSQL_TYPE_VAR_STRING := 253,
-    MYSQL_TYPE_STRING := 254,
-    MYSQL_TYPE_GEOMETRY := 255
+    MYSQL_TYPE_INVALID = 243,
+    MYSQL_TYPE_BOOL = 244, // Currently just a placeholder
+    MYSQL_TYPE_JSON = 245,
+    MYSQL_TYPE_NEWDECIMAL = 246,
+    MYSQL_TYPE_ENUM = 247,
+    MYSQL_TYPE_SET = 248,
+    MYSQL_TYPE_TINY_BLOB = 249,
+    MYSQL_TYPE_MEDIUM_BLOB = 250,
+    MYSQL_TYPE_LONG_BLOB = 251,
+    MYSQL_TYPE_BLOB = 252,
+    MYSQL_TYPE_VAR_STRING = 253,
+    MYSQL_TYPE_STRING = 254,
+    MYSQL_TYPE_GEOMETRY = 255
     );
 
 function MySQLDataType(MySqlFieldType: enum_MYSQL_types; decimals: integer; size: uint32; flags, charsetnr: integer;
@@ -314,12 +313,12 @@ function TMariaDBConnector.ReceivePacket(Timeout: integer): rawbytestring;
 var
   Buffer, Bf: rawbytestring;
   Rc: integer;
-  Ps: uint32;
+  Ps: integer;
   Len, uLen: integer;
   Num: integer;
   Stream: TMemoryStream;
-  Buf: rawByteString;
-  AnotherPacket: Boolean;
+  Buf: rawbytestring;
+  AnotherPacket: boolean;
 begin
   // https://mariadb.com/kb/en/0-packet/
   // https://mariadb.com/kb/en/com_query/
@@ -333,17 +332,18 @@ begin
   begin
 
     // https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_compression_packet.html#sect_protocol_basic_compression_packet_compressed_payload
-    // why per $4000 bytes uncompressed ??
+    // why per $4000 = 16384 bytes uncompressed ??
 
     if FConnected and FUseCompression then
     begin
 
       Buffer := '';
-      AnotherPacket := false;
+      AnotherPacket := False;
 
       repeat // multiple compressed packages possible until eof
 
         // compression 7 bytes header
+        Buf := ''; // dummy
         SetLength(Buf, 7);
         Rc := Sock.RecvBufferEx(@Buf[1], 7, Timeout);
         if Rc <> 7 then
@@ -358,7 +358,7 @@ begin
         uLen := _get_int(Buf, Ps, 3);
 
         // if uLen > 200 then
-        // writeln(uLen.ToString);  //   16384   = $4000
+        //  writeln(uLen.ToString);  //   16384   = $4000
 
         // compressed packets
         SetLength(Buf, Len);
@@ -380,24 +380,24 @@ begin
 
         // zlib uncompres data
         Stream := TMemoryStream.Create;
-        try
-          Stream.Write(@Buf[1], Length(Buf));
-          SetLength(Buf, uLen); // increase buffersize to uncompressed length
-          Stream.Position := 0;
+      try
+        Stream.WriteBuffer(Pointer(Buf)^, Length(Buf));
+        SetLength(Buf, uLen); // increase buffersize to uncompressed length
+        Stream.Position := 0;
 
-          with TDecompressionStream.Create(Stream, False) do
+        with TDecompressionStream.Create(Stream, False) do
+        begin
+          Len := Read(Pointer(Buf)^, uLen);
+          if Len <> uLen then
           begin
-            Len := Read(Pointer(Buf)^, uLen);
-            if Len <> uLen then
-            begin
-              FLastError := -1;
-              FLastErrorDesc := 'Error wrong size';
-              exit('');
-            end;
+            FLastError := -1;
+            FLastErrorDesc := 'Error wrong size';
+            exit('');
           end;
-        finally
-          Stream.Free;
         end;
+      finally
+        Stream.Free;
+      end;
 
         Buffer := Buffer + Buf;
         AnotherPacket := (uLen = $4000);  // ? why $4000 ?
@@ -486,9 +486,9 @@ end;
 
 
 
-function TMariaDBConnector._get_int(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): integer; // -1 = lenenc
+function TMariaDBConnector._get_int(Buffer: rawbytestring; var Ps: integer; Len: integer = -1): uint64; // -1 = lenenc
 var
-  Int, j: uint32;
+  Int, j: uint64;
 begin
   if len = -1 then // int<lenenc> Length-encoded integers
   begin
@@ -520,7 +520,7 @@ begin
   Result := Int;
 end;
 
-function TMariaDBConnector._get_str(Buffer: rawbytestring; var Ps: uint32; Len: integer = -1): rawbytestring;
+function TMariaDBConnector._get_str(Buffer: rawbytestring; var Ps: integer; Len: integer = -1): rawbytestring;
 begin
   if len > 0 then // string<fix> Fixed-length strings
   begin
@@ -546,7 +546,7 @@ end;
 
 function TMariaDBConnector._is_error(Buffer: rawbytestring): boolean;
 var
-  Ps: uint32;
+  Ps: integer;
   i: integer;
 begin
   // https://mariadb.com/kb/en/err_packet/
@@ -589,7 +589,7 @@ end;
 
 function TMariaDBConnector._is_ok(Buffer: rawbytestring): boolean;
 var
-  Ps: uint32;
+  Ps: integer;
 begin
   // https://mariadb.com/kb/en/ok_packet/
   // OK PACKAGE     07 00 00 {len} 02 {number} 00 {status} 00 00 02 00 00 00
@@ -638,7 +638,6 @@ var
   AuthPlugin: string;
   Buffer: rawbytestring = '';
   Seed: rawbytestring;
-  OldCompression: boolean;
 
   FServerProtocol: integer;
   FServerVersion: rawbytestring;
@@ -651,7 +650,7 @@ var
   FClientCapabilities: uint64;
 
   Part1, Part2: rawbytestring;
-  Ps: uint32;
+  Ps: integer;
   x: uint64;
 begin
   Result := False;
@@ -722,7 +721,7 @@ begin
 
   DebugStr('------------------');
   DebugStr('Server protocol: ' + FServerProtocol.ToString);
-  DebugStr('Sserver version: ' + FServerVersion);
+  DebugStr('Server version: ' + FServerVersion);
   DebugStr('Connection ID: ' + FConnectionId.ToString);
   DebugStr('Server capabilities: ' + BinStr(FServerCapabilities, 64));  // 00000000000000001111011111111110
   DebugStr('Server default collation: ' + FServerDefaultCollation.ToString);
@@ -770,6 +769,8 @@ begin
     // Construct the answer handschake package
     Buffer := _set_int(FClientCapabilities, 4);  // int<4> client capabilities // #$0D#$A6#$03#$00
     Buffer := Buffer + _set_int($01000000, 4); // int<4> max packet size 16MB // #0#0#0#1
+    // Buffer := Buffer + _set_int($40000000, 4); // int<4> max packet size 1GB // #0#0#0#1
+    // Buffer := Buffer + _set_int($00000001, 4); // int<4> max packet size 1B // #0#0#0#1
     Buffer := Buffer + #$21;           // int<1> client character collation
     Buffer := Buffer + #0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0; // string<19> reserved
     Buffer := Buffer + #0#0#0#0;       // - int<4> extended client capabilities
@@ -807,7 +808,7 @@ var
   Buffer: rawbytestring;
   Value: rawbytestring;
   Column: integer;
-  Ps, MaxLen: uint32;
+  Ps, MaxLen: integer;
 
   sqltype: enum_MYSQL_types;
   decimals, flags, charsetnr: integer;

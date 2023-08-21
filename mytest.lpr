@@ -1,21 +1,23 @@
 program mytest;
 
-{$mode ObjFPC}{$H+}
+{$MODE OBJFPC}{$H+}
 
 uses
-  umariadbconnector,
-  DB,
+  Classes,
+  SysUtils,
+  JsonConf,
   {$IFDEF WINDOWS}
     Windows, {for setconsoleoutputcp}
   {$ENDIF}
-  SysUtils, JsonConf;
+  umariadbconnector,
+  DB;
 
 const
   ConfigFileName = 'mycredentials.json'; // will be used for credentials
-  Server: String = 'localhost';
-  User: String = 'root';
-  Password: String = 'password';
-  Database: String = ''; // can be empty
+  Server: string = 'localhost';
+  User: string = 'root';
+  Password: string = 'password';
+  Database: string = ''; // can be empty
 
   // ---------------------------
   // Examples
@@ -43,29 +45,28 @@ var
 
   end;
 
-
   function rand(len: SizeInt = 20): string;
-  const
-    chars: array of string = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
-      'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-      'Y', 'Z', 'Ä', 'Ö', 'Ü');
-  var
-    i, l: SizeInt;
-    c: string;
-  begin
-    Result := ''; // no warning
-    SetLength(Result, len);
-    l := 0;
-    for i := 1 to len do
-    begin
-      c := chars[Random(Length(chars))];
-      if l + Length(c) > Length(Result) then
-        SetLength(Result, Length(Result) * 2);
-      Move(c[1], Result[l + 1], Length(c));
-      Inc(l, Length(c));
-    end;
-    SetLength(Result, l);
-  end;
+   const
+     chars: array of string = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+       'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+       'Y', 'Z', 'Ä', 'Ö', 'Ü');
+   var
+     i, l: SizeInt;
+     c: string;
+   begin
+     Result := ''; // no warning
+     SetLength(Result, len);
+     l := 0;
+     for i := 1 to len do
+     begin
+       c := chars[Random(Length(chars))];
+       if l + Length(c) > Length(Result) then
+         SetLength(Result, Length(Result) * 2);
+       Move(c[1], Result[l + 1], Length(c));
+       Inc(l, Length(c));
+     end;
+     SetLength(Result, l);
+   end;
 
   procedure GetCredentials;
   var
@@ -94,64 +95,67 @@ var
 var
   sql: string;
   i: integer;
-  cnt: Integer;
+  cnt: integer;
 begin
 
   GetCredentials;
 
-  MariaDbDebug := false;
+  MariaDbDebug := False;
 
   // SetTextCodePage(Output, DefaultSystemCodePage);
   {$IFDEF WINDOWS}
   SetConsoleOutputCP(CP_UTF8);
   SetTextCodePage(Output, CP_UTF8);  // why 0 ??
   SetTextCodePage(Output, 0);  // why 0 ??
-  {$ENDIF}
+   {$ENDIF}
 
   MDB := TMariaDBConnector.Create;
   try
+    try
 
-    if not MDB.ConnectAndLogin(Server, '', User, Password, Database) then
-    begin
-      writeln('Problem connecting. ', MDB.LastError, ' ', MDB.LastErrorDesc);
-      exit;
-    end;
+      if not MDB.ConnectAndLogin(Server, '', User, Password, Database) then
+      begin
+        writeln('Problem connecting. ', MDB.LastError, ' ', MDB.LastErrorDesc);
+        exit;
+      end;
 
-    Writeln('We have a connection');
+      Writeln('We have a connection');
 
-    if MDB.Ping then
-      writeln('Ping response ok')
-    else
-      writeln('Error on ping');
+      if MDB.Ping then
+        writeln('Ping response ok')
+      else
+        writeln('Error on ping');
 
-    DoSQL('show databases');
+      DoSQL('show databases');
 
-    // MDB.SetMultiOptions(true);
-    // if MDB.Query('use cis') then;
-    // if MDB.Query('use cis; use mysql;') then;
+      // MDB.SetMultiOptions(true);
+      // if MDB.Query('use cis') then;
+      // if MDB.Query('use cis; use mysql;') then;
 
-    DoSQL('DROP DATABASE IF EXISTS connector_test;');
-    DoSQL('CREATE DATABASE connector_test');
-    DoSQL('use connector_test');
-    sql := 'create table if not exists test (';
-    sql := sql + ' id bigint auto_increment primary key,';
-    sql := sql + ' name varchar(20) charset utf8,';
-    sql := sql + ' key name (name(5))';
-    sql := sql + ') engine=InnoDB default charset latin1;';
-    DoSQL(sql);
+      DoSQL('DROP DATABASE IF EXISTS connector_test;');
+      DoSQL('CREATE DATABASE connector_test');
+      DoSQL('use connector_test');
+      sql := 'create table if not exists test (';
+      sql := sql + ' id bigint auto_increment primary key,';
+      sql := sql + ' name varchar(20) charset utf8,';
+      sql := sql + ' key name (name(5))';
+      sql := sql + ') engine=InnoDB default charset latin1;';
+      DoSQL(sql);
 
-    cnt := 6000;
-    writeln(Format('Inserting %d records', [cnt]));
+      cnt := 300;
+      writeln(Format('Inserting %d records', [cnt]));
 
-    for i := 1 to cnt do
-    begin
-      if i mod (cnt div 100) = 0 then write(#13, i div (cnt div 100), '%');
-      sql := rand;
-      // writeln((sql));
-      // writeln(Buf2Hex(sql));
-      DoSQL('INSERT INTO test (name) VALUES (''' + sql + ''');');
-    end;
-    writeln(#13, 'done');
+      for i := 1 to cnt do
+        begin
+          if i mod (cnt div 100) = 0 then write(#13, i div (cnt div 100), '%');
+          sql := rand;
+          // writeln((sql));
+          // writeln(Buf2Hex(sql));
+          DoSQL('INSERT INTO test (name) VALUES (''' + sql + ''');');
+        end;
+        writeln(#13, 'done');
+
+      writeln(#13, 'done');
 
     {
 
@@ -166,22 +170,27 @@ begin
     DoSQL(sql);
     }
 
-    sql := 'select * from test where id>=5 and id<=11';
-    sql := 'select * from test order by id desc';
-    writeln(sql);
+      sql := 'select * from test where id>=5 and id<=11';
+      sql := 'select * from test order by id desc';
+      writeln(sql);
 
-    // if not MDB.DoSQL(sql) then ;
+      if not DoSQL(sql) then;
 
-    writeln('Retrieving records');
-    if MDB.Query(sql) then
-      writeln(Format('Number of records %d', [MDB.Dataset.RecordCount]))
-    else
-      writeln('Error doing select: ', MDB.LastError, ' ', MDB.LastErrorDesc);
+      writeln('Retrieving records');
+      if MDB.Query(sql) then
+        writeln(Format('Number of records %d', [MDB.Dataset.RecordCount]))
+      else
+        writeln('Error doing select: ', MDB.LastError, ' ', MDB.LastErrorDesc);
 
-    DoSQL('DROP TABLE IF EXISTS test;');
-    DoSQL('DROP DATABASE IF EXISTS connector_test;');
+      // DoSQL('DROP TABLE IF EXISTS test;');
+      // DoSQL('DROP DATABASE IF EXISTS connector_test;');
 
-    MDB.Quit;
+      MDB.Quit;
+
+    except
+      on E: Exception do
+        writeln('Exception: ' + E.Message);
+    end;
 
   finally
 

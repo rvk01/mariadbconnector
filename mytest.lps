@@ -8,17 +8,18 @@
       <Unit>
         <Filename Value="mytest.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
-        <UsageCount Value="64"/>
+        <TopLine Value="119"/>
+        <CursorPos Y="143"/>
+        <UsageCount Value="70"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="umariadbconnector.pas"/>
         <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="353"/>
-        <CursorPos X="42" Y="364"/>
-        <UsageCount Value="64"/>
+        <CursorPos Y="4"/>
+        <UsageCount Value="70"/>
         <Bookmarks Count="1">
           <Item0 Y="417" ID="1"/>
         </Bookmarks>
@@ -126,8 +127,9 @@
         <Filename Value="Q:\dev32\fpc\packages\paszlib\src\zipper.pp"/>
         <UnitName Value="Zipper"/>
         <EditorIndex Value="-1"/>
-        <CursorPos X="23" Y="24"/>
-        <UsageCount Value="9"/>
+        <TopLine Value="3137"/>
+        <CursorPos Y="3163"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\packages\paszlib\src\zstream.pp"/>
@@ -148,16 +150,16 @@
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\objpas\classes\classesh.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="1098"/>
-        <CursorPos X="15" Y="1115"/>
-        <UsageCount Value="9"/>
+        <TopLine Value="1119"/>
+        <CursorPos X="16" Y="1138"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\objpas\classes\streams.inc"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="959"/>
-        <CursorPos X="7" Y="981"/>
-        <UsageCount Value="9"/>
+        <TopLine Value="1222"/>
+        <CursorPos X="12" Y="1222"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\inc\text.inc"/>
@@ -173,66 +175,161 @@
         <CursorPos Y="2170"/>
         <UsageCount Value="10"/>
       </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\objpas\objpas.pp"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos Y="16"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\config\onlinepackagemanager\packages\synapse40.1\blcksock.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="41"/>
+        <CursorPos Y="75"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\packages\fcl-db\src\base\bufdataset.pas"/>
+        <UnitName Value="BufDataset"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="619"/>
+        <CursorPos X="15" Y="639"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\config\onlinepackagemanager\packages\synapse40.1\httpsend.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="754"/>
+        <CursorPos X="29" Y="754"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\objpas\sysutils\filutilh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="172"/>
+        <CursorPos X="14" Y="193"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Q:\dev32\fpc\rtl\inc\objpas.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="753"/>
+        <CursorPos Y="772"/>
+        <UsageCount Value="10"/>
+      </Unit>
     </Units>
-    <JumpHistory HistoryIndex="14">
+    <JumpHistory HistoryIndex="28">
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="144" Column="32" TopLine="122"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="167" Column="29" TopLine="144"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="77" Column="20" TopLine="60"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="357" Column="36" TopLine="333"/>
+        <Caret Line="3" Column="7"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="175" TopLine="147"/>
+        <Caret Line="178" Column="16" TopLine="165"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="27" Column="42" TopLine="10"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="181" Column="17" TopLine="165"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="783" Column="20" TopLine="749"/>
+        <Caret Line="81" Column="15" TopLine="62"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="77" Column="14" TopLine="58"/>
+        <Caret Line="957" Column="19" TopLine="948"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="358" Column="10" TopLine="328"/>
+        <Caret Line="80" Column="15" TopLine="61"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="336" Column="131" TopLine="328"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="768" Column="18" TopLine="743"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="391" Column="45" TopLine="377"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="753" TopLine="749"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="362" TopLine="343"/>
+        <Caret Line="825" Column="3" TopLine="807"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
       </Position>
       <Position>
         <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="285" Column="31" TopLine="253"/>
+        <Caret Line="286" Column="29" TopLine="254"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="356" Column="28" TopLine="331"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="363" Column="18" TopLine="331"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="387" TopLine="354"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="386" Column="21" TopLine="354"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="367" Column="32" TopLine="354"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="280" Column="43" TopLine="258"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="321" Column="24" TopLine="289"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="387" Column="43" TopLine="366"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="21" Column="53"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="426" TopLine="426"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="319" Column="24" TopLine="287"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="384" TopLine="370"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="5"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="386" Column="25" TopLine="367"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="385" Column="28" TopLine="367"/>
+      </Position>
+      <Position>
+        <Filename Value="umariadbconnector.pas"/>
+        <Caret Line="381" Column="16" TopLine="367"/>
       </Position>
     </JumpHistory>
     <RunParams>

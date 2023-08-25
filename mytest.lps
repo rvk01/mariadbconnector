@@ -9,8 +9,8 @@
         <Filename Value="mytest.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="445"/>
-        <CursorPos Y="489"/>
+        <TopLine Value="126"/>
+        <CursorPos Y="152"/>
         <UsageCount Value="131"/>
         <Bookmarks Count="1">
           <Item0 ID="1"/>
@@ -20,11 +20,10 @@
       <Unit>
         <Filename Value="umariadbconnector.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="486"/>
         <CursorPos Y="493"/>
         <UsageCount Value="131"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\packages\fcl-db\src\base\db.pas"/>
@@ -260,9 +259,9 @@
         <Filename Value="Q:\dev64\lazarus\components\lazutils\lazutf8.pas"/>
         <UnitName Value="LazUTF8"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="426"/>
-        <CursorPos Y="449"/>
-        <UsageCount Value="9"/>
+        <TopLine Value="410"/>
+        <CursorPos X="32" Y="447"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev64\fpc\rtl\objpas\classes\classesh.inc"/>
@@ -337,110 +336,90 @@
         <UsageCount Value="10"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="25">
+    <JumpHistory HistoryIndex="20">
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="381" Column="11" TopLine="353"/>
+        <Caret Line="110" Column="105" TopLine="73"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="131" Column="40" TopLine="114"/>
+        <Caret Line="115" Column="53" TopLine="78"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="364" TopLine="353"/>
+        <Caret Line="124" Column="112" TopLine="123"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="362" Column="13" TopLine="325"/>
+        <Caret Line="144" TopLine="123"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="361" Column="70" TopLine="342"/>
+        <Caret Line="146" TopLine="123"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="15" Column="20"/>
+        <Caret Line="147" TopLine="123"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="373" Column="39" TopLine="356"/>
+        <Caret Line="40" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="20"/>
+        <Caret Line="41" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="276" Column="54" TopLine="260"/>
+        <Caret Line="42" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="126" Column="31" TopLine="106"/>
+        <Caret Line="43" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="20" Column="7"/>
+        <Caret Line="45" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="91" Column="10" TopLine="68"/>
+        <Caret Line="46" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="347" Column="33" TopLine="345"/>
+        <Caret Line="43" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="307" Column="22" TopLine="288"/>
+        <Caret Line="45" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="438" Column="19" TopLine="412"/>
+        <Caret Line="46" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="45" Column="33" TopLine="43"/>
+        <Caret Line="43" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="27" Column="13"/>
+        <Caret Line="37" Column="20" TopLine="17"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="209" Column="33" TopLine="172"/>
+        <Caret Line="16" Column="9"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="214" Column="40" TopLine="177"/>
+        <Caret Line="49" TopLine="31"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="232" Column="38" TopLine="195"/>
+        <Caret Line="344" TopLine="321"/>
       </Position>
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="237" Column="76" TopLine="200"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="245" Column="39" TopLine="208"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="370" Column="17" TopLine="333"/>
-      </Position>
-      <Position>
-        <Filename Value="umariadbconnector.pas"/>
-        <Caret Line="992" TopLine="955"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="44" TopLine="16"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="188" TopLine="159"/>
+        <Caret Line="151" Column="21" TopLine="131"/>
       </Position>
     </JumpHistory>
     <RunParams>

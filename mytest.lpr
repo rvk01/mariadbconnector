@@ -32,6 +32,44 @@ var
   MDB: TMariaDBConnector;
 
   // ---------------------------
+  // Helper function because we don't wan't to include comlete lazutf8
+  // ---------------------------
+  function UTF8StringLength(const s: string): integer;
+  var
+    i, len: integer;
+  begin
+    len := 0;
+    i := 1;
+    while i <= Length(s) do
+    begin
+      if (Ord(s[i]) and $80) = 0 then
+      begin
+        Inc(len);
+        Inc(i);
+      end
+      else if (Ord(s[i]) and $E0) = $C0 then
+      begin
+        Inc(len);
+        Inc(i);
+      end
+      else if (Ord(s[i]) and $F0) = $E0 then
+      begin
+        Inc(len);
+        Inc(i, 2);
+      end
+      else if (Ord(s[i]) and $F8) = $F0 then
+      begin
+        Inc(len);
+        Inc(i, 3);
+      end
+      else
+        Inc(i);
+    end;
+
+    Result := len;
+  end;
+
+  // ---------------------------
   // get single value from database
   // ---------------------------
   function GetSQLValue(SQL: string; Column: integer = 1): string;
@@ -47,8 +85,7 @@ var
   // ---------------------------
   function DoSQL(SQL: string): boolean;
   var
-    fmt: string;
-    i: integer;
+    i, j: integer;
     s, h1, h2: string;
     OneItem: boolean;
     Help: string;
@@ -108,9 +145,17 @@ var
           h2 := '|';
           for i := 0 to MDB.Dataset.Fields.Count - 1 do
           begin
-            fmt := ' %' + MDB.MaxColumnLength[i].ToString + 's |';
             s := MDB.Dataset.Fields[i].AsString;
-            h2 := h2 + format(fmt, [s]);
+            j := UTF8StringLength(s);
+            while j < Abs(MDB.MaxColumnLength[i]) do
+            begin
+              if MDB.MaxColumnLength[i] < 0 then
+                s := s + ' '
+              else
+                s := ' ' + s;
+              Inc(j);
+            end;
+            h2 := h2 + ' ' + s + ' |';
           end;
           writeln(h2);
 
@@ -394,9 +439,9 @@ var
   end;
   {$ENDIF}
 
-// ---------------------------
-// main program
-// ---------------------------
+  // ---------------------------
+  // main program
+  // ---------------------------
 var
   sql: string;
 begin

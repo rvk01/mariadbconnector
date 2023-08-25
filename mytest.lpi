@@ -26,9 +26,6 @@
     </RunParams>
     <RequiredPackages>
       <Item>
-        <PackageName Value="LazUtils"/>
-      </Item>
-      <Item>
         <PackageName Value="laz_synapse"/>
       </Item>
     </RequiredPackages>

@@ -14,20 +14,26 @@ uses
   {$ENDIF}
   umariadbconnector;
 
+const
+  CRLF = #13#10;
+  clrNormal = #27'[0m';
+  clrBold = #27'[1m';
+  clrRed = #27'[31m';
+  clrGreen = #27'[32m';
+  clrYellow = #27'[33m';
+  clrWhite = #27'[37m';
+
 var
-  ConfigFileName: string = 'mycredentials.json'; // will be used for credentials
+  ConfigFileName: string;
   Server: string;
   User: string;
   Password: string;
   Database: string;
-
-  // ---------------------------
-  // Examples
-  // ---------------------------
-
-var
   MDB: TMariaDBConnector;
 
+  // ---------------------------
+  // get single value from database
+  // ---------------------------
   function GetSQLValue(SQL: string; Column: integer = 1): string;
   begin
     Result := '';
@@ -36,15 +42,28 @@ var
         Result := MDB.Dataset.Fields[Column - 1].AsString;
   end;
 
+  // ---------------------------
+  // execute sql command and display result
+  // ---------------------------
   function DoSQL(SQL: string): boolean;
   var
     fmt: string;
     i: integer;
     s, h1, h2: string;
-    Help: boolean;
+    OneItem: boolean;
+    Help: string;
   begin
+
+    // if help command then always set quotes around topic
+    Help := '';
+    if (Pos('help ', sql) = 1) then Help := Copy(sql, 6);
+    Help := AnsiDequotedStr(Help, #39);
+    Help := AnsiDequotedStr(Help, '"');
+    if Help <> '' then sql := 'help ' + QuotedStr(Help);
+
+    // execute sql
     Result := MDB.Query(SQL);
-    if not Result then writeln('Error: ', SQL, ' ', MDB.LastError, ' ', MDB.LastErrorDesc);
+    if not Result then writeln(clrRed + 'Error: ' + clrNormal, SQL, ' ', MDB.LastError, ' ', MDB.LastErrorDesc);
 
     if MDB.Dataset.Active then
     begin
@@ -61,15 +80,19 @@ var
         h2 := h2 + format(' %' + MDB.MaxColumnLength[i].ToString + 's |', [MDB.Dataset.Fields[i].FieldName]);
       end;
 
-      // source_category_name
-      // writeln('You asked for help about help category: ' + Copy(sql, 6));
-      // writeln('For more information, type `help <item>`, where <item> is one of the following');
-      // To make a more specific request, please type 'help <item>',
-      // where <item> is one of the following topics:
+      OneItem := not Assigned(MDB.Dataset.FindField('is_it_category'));
 
-      Help := (Pos('help ', sql) = 1) and (MDB.Dataset.Fields[0].FieldName = 'name');
+      if (Help <> '') and (MDB.Dataset.RecordCount = 0) then
+      begin
+        writeln('Nothing found');
+        writeln('Please try to run `help contents` for a list of all accessible topics');
+      end
+      else if not OneItem then
+      begin
+        writeln('For more information, type `help <item>`, where <item> is one of the following');
+      end;
 
-      if not Help then
+      if Help = '' then
       begin
         writeln(h1);
         writeln(h2);
@@ -80,7 +103,7 @@ var
       while not MDB.Dataset.EOF do
       begin
 
-        if not Help then
+        if Help = '' then
         begin
           h2 := '|';
           for i := 0 to MDB.Dataset.Fields.Count - 1 do
@@ -95,22 +118,35 @@ var
         else
         begin
 
-          h2 := '';
-          for i := 0 to MDB.Dataset.Fields.Count - 1 do
-            if MDB.Dataset.Fields[i].AsString <> '' then
-            begin
-              h2 := MDB.Dataset.Fields[i].FieldName + ': ';
-              if Pos(#13, MDB.Dataset.Fields[i].AsString) > 0 then h2 := h2 + #13#10;
-              h2 := h2 + MDB.Dataset.Fields[i].AsString;
-              writeln(h2);
-            end;
+          if OneItem then
+          begin
+
+            h2 := '';
+            for i := 0 to MDB.Dataset.Fields.Count - 1 do
+              if MDB.Dataset.Fields[i].AsString <> '' then
+              begin
+                h2 := clrYellow + MDB.Dataset.Fields[i].FieldName + clrNormal + ': ';
+                if Pos(#10, MDB.Dataset.Fields[i].AsString) > 0 then h2 := h2 + CRLF;
+                s := MDB.Dataset.Fields[i].AsString;
+                s := StringReplace(s, #10, CRLF, [rfReplaceAll]);
+                h2 := h2 + s;
+                writeln(h2);
+              end;
+
+          end
+          else
+          begin
+
+            writeln(MDB.Dataset.FieldByName('name').AsString);
+
+          end;
 
         end;
 
         MDB.Dataset.Next;
       end;
 
-      if not Help then
+      if Help = '' then
       begin
         writeln(h1);
         writeln(format('%d rows in set', [MDB.Dataset.RecordCount]));
@@ -120,6 +156,9 @@ var
 
   end;
 
+  // ---------------------------
+  // create random string
+  // ---------------------------
   function rand(len: SizeInt = 20): string;
   const
     chars: array of string = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
@@ -143,6 +182,9 @@ var
     SetLength(Result, l);
   end;
 
+  // ---------------------------
+  // print help message
+  // ---------------------------
   procedure printhelp;
   begin
     writeln('');
@@ -162,10 +204,13 @@ var
     writeln('untest    (\t2) cleanup test database.');
     writeln('');
     writeln('For server side help, type `help contents`.');
-    writeln('or `help upper` or `help format`.');
+    writeln('or `help upper` or `help rep%`.');
     writeln('');
   end;
 
+  // ---------------------------
+  // load config with credentials
+  // ---------------------------
   procedure loadconfig;
   var
     Conf: TJsonConfig;
@@ -186,6 +231,9 @@ var
     end;
   end;
 
+  // ---------------------------
+  // save config with credentials
+  // ---------------------------
   procedure saveconfig;
   var
     Conf: TJsonConfig;
@@ -204,12 +252,18 @@ var
     end;
   end;
 
+  // ---------------------------
+  // delete file with credentials
+  // ---------------------------
   procedure unsaveconfig;
   begin
     SysUtils.DeleteFile(ConfigFileName);
     writeln('File with credentials deleted');
   end;
 
+  // ---------------------------
+  // dialog for entering credentials and connecting to server
+  // ---------------------------
   procedure EnterOrCheckCredentialsAndConnect(Reconnect: boolean);
   var
     Value: string;
@@ -241,7 +295,10 @@ var
 
   end;
 
-  procedure createtestdatabase(sql: string); // delete/create database and add records
+  // ---------------------------
+  // create test database and table and add records
+  // ---------------------------
+  procedure createtestdatabase(sql: string);
   var
     cnt, i: integer;
     Arr: TStringDynArray;
@@ -272,12 +329,18 @@ var
     writeln(#13, 'done');
   end;
 
+  // ---------------------------
+  // remove test database
+  // ---------------------------
   procedure cleanuptest;
   begin
     writeln('Dropping database connector_test');
     DoSQL('DROP DATABASE IF EXISTS connector_test;');
   end;
 
+  // ---------------------------
+  // print status information from server
+  // ---------------------------
   procedure printinfo;
   var
     info: string;
@@ -288,28 +351,52 @@ var
     Up := GetSQLValue('show global status like ''Uptime'';', 2);
     Up := FormatDateTime('d" days" h" hours" n" minutes" s" seconds"', StrToInt(Up) / (24 * 60 * 60) + 1);
 
-    Info := Info + 'Server version          ' + GetSQLValue('select @@version') + #13#10;
-    Info := Info + 'Protocol version        ' + GetSQLValue('select @@protocol_version') + #13#10;
-    Info := Info + 'Uptime                  ' + Up + #13#10;
-    Info := Info + 'Current database        ' + Database + #13#10;
-    Info := Info + 'Current user            ' + User + #13#10;
-    Info := Info + 'Compression             ' + GetSQLValue('show global status like ''Compression'';', 2) + #13#10;
-    Info := Info + 'Server characterset     ' + GetSQLValue('select @@character_set_server') + #13#10;
-    Info := Info + 'Db     characterset     ' + GetSQLValue('select @@character_set_database') + #13#10;
-    Info := Info + 'Client characterset     ' + GetSQLValue('select @@character_set_client') + #13#10;
-    Info := Info + 'Conn.  characterset     ' + GetSQLValue('select @@character_set_connection') + #13#10;
-    Info := Info + 'autocommit              ' + GetSQLValue('select @@autocommit') + #13#10;
-    Info := Info + 'have_compress           ' + GetSQLValue('select @@have_compress') + #13#10;
-    Info := Info + 'have_openssl            ' + GetSQLValue('select @@have_openssl') + #13#10;
-    Info := Info + 'have_ssl                ' + GetSQLValue('select @@have_ssl') + #13#10;
-    Info := Info + 'hostname                ' + GetSQLValue('select @@hostname') + #13#10;
-    Info := Info + 'net_buffer_length       ' + GetSQLValue('select @@net_buffer_length') + #13#10;
-    Info := Info + 'max_allowed_packet      ' + GetSQLValue('select @@max_allowed_packet') + #13#10;
+    Info := Info + 'Server version          ' + GetSQLValue('select @@version') + CRLF;
+    Info := Info + 'Protocol version        ' + GetSQLValue('select @@protocol_version') + CRLF;
+    Info := Info + 'Uptime                  ' + Up + CRLF;
+    Info := Info + 'Current database        ' + Database + CRLF;
+    Info := Info + 'Current user            ' + User + CRLF;
+    Info := Info + 'Compression             ' + GetSQLValue('show global status like ''Compression'';', 2) + CRLF;
+    Info := Info + 'Server characterset     ' + GetSQLValue('select @@character_set_server') + CRLF;
+    Info := Info + 'Db     characterset     ' + GetSQLValue('select @@character_set_database') + CRLF;
+    Info := Info + 'Client characterset     ' + GetSQLValue('select @@character_set_client') + CRLF;
+    Info := Info + 'Conn.  characterset     ' + GetSQLValue('select @@character_set_connection') + CRLF;
+    Info := Info + 'autocommit              ' + GetSQLValue('select @@autocommit') + CRLF;
+    Info := Info + 'have_compress           ' + GetSQLValue('select @@have_compress') + CRLF;
+    Info := Info + 'have_openssl            ' + GetSQLValue('select @@have_openssl') + CRLF;
+    Info := Info + 'have_ssl                ' + GetSQLValue('select @@have_ssl') + CRLF;
+    Info := Info + 'hostname                ' + GetSQLValue('select @@hostname') + CRLF;
+    Info := Info + 'net_buffer_length       ' + GetSQLValue('select @@net_buffer_length') + CRLF;
+    Info := Info + 'max_allowed_packet      ' + GetSQLValue('select @@max_allowed_packet') + CRLF;
 
     writeln(Info);
 
   end;
 
+  {$IFDEF WINDOWS}
+  // ---------------------------
+  // initialize windows console to print color
+  // ---------------------------
+  procedure InitWindows;
+  const
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = $0004;
+  var
+    dwOriginalOutMode, dwRequestedOutModes, dwRequestedInModes, dwOutMode: Dword;
+  begin
+    // SetTextCodePage(Output, DefaultSystemCodePage);
+    SetConsoleOutputCP(CP_UTF8);
+    SetTextCodePage(Output, CP_UTF8);  // why 0 ??
+    SetTextCodePage(Output, 0);  // why 0 ??
+    GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), dwOriginalOutMode);
+    dwRequestedOutModes := ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    dwOutMode := dwOriginalOutMode OR dwRequestedOutModes;
+    SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), dwOutMode);
+  end;
+  {$ENDIF}
+
+// ---------------------------
+// main program
+// ---------------------------
 var
   sql: string;
 begin
@@ -320,14 +407,11 @@ begin
 
   MariaDbDebug := False;
 
-  // SetTextCodePage(Output, DefaultSystemCodePage);
   {$IFDEF WINDOWS}
-  SetConsoleOutputCP(CP_UTF8);
-  SetTextCodePage(Output, CP_UTF8);  // why 0 ??
-  SetTextCodePage(Output, 0);  // why 0 ??
+  InitWindows;
   {$ENDIF}
 
-  writeln('Welcome to the MariaDB connector.');
+  writeln(clrBold + 'Welcome to the MariaDB connector.' + clrNormal);
   writeln('');
   writeln('Type ?, help or \h for help.');
   writeln('');
@@ -342,7 +426,7 @@ begin
       repeat
 
         if MDB.Connected then Database := GetSQLValue('SELECT DATABASE();');
-        Write(format('[%s] # ', [Database]));
+        Write(clrGreen + format('[%s] # ', [Database]) + clrNormal);
 
         readln(sql);
 

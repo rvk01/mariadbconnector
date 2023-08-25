@@ -9,11 +9,10 @@
         <Filename Value="mytest.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="154"/>
-        <CursorPos Y="176"/>
-        <UsageCount Value="127"/>
+        <CursorPos Y="30"/>
+        <UsageCount Value="128"/>
         <Bookmarks Count="1">
-          <Item0 X="93" Y="315" ID="1"/>
+          <Item0 X="93" Y="306" ID="1"/>
         </Bookmarks>
         <Loaded Value="True"/>
       </Unit>
@@ -23,7 +22,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="638"/>
         <CursorPos Y="672"/>
-        <UsageCount Value="127"/>
+        <UsageCount Value="128"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\packages\fcl-db\src\base\db.pas"/>
@@ -52,7 +51,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="235"/>
         <CursorPos X="27" Y="236"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
       </Unit>
       <Unit>
         <Filename Value="Q:\dev32\fpc\rtl\win\wininc\func.inc"/>
@@ -300,69 +299,6 @@
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="mytest.lpr"/>
-        <Caret Line="283" Column="60" TopLine="262"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="16" Column="8"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="26"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="287" Column="52" TopLine="266"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="31" Column="13" TopLine="10"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="31" Column="13" TopLine="10"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="117" Column="39" TopLine="77"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="332" TopLine="324"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="34" Column="27" TopLine="16"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="350" Column="60" TopLine="329"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="330" TopLine="309"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="272" TopLine="266"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="307" TopLine="279"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="162" Column="56" TopLine="118"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
-        <Caret Line="296" Column="89" TopLine="259"/>
-      </Position>
-      <Position>
-        <Filename Value="mytest.lpr"/>
         <Caret Line="311" Column="93" TopLine="290"/>
       </Position>
       <Position>
@@ -416,6 +352,67 @@
       <Position>
         <Filename Value="mytest.lpr"/>
         <Caret Line="103" TopLine="78"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="352" TopLine="329"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="70" Column="38" TopLine="48"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="78" Column="20" TopLine="41"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="167" Column="18" TopLine="130"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="335" Column="15" TopLine="298"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="331" Column="28" TopLine="308"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="53" Column="9" TopLine="37"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="67" Column="18" TopLine="46"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="84" Column="20" TopLine="62"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="77" TopLine="41"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="72" TopLine="36"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="31" TopLine="9"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
+        <Caret Line="319" TopLine="301"/>
+      </Position>
+      <Position>
+        <Filename Value="mytest.lpr"/>
       </Position>
     </JumpHistory>
     <RunParams>

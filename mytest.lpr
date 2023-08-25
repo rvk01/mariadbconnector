@@ -27,8 +27,6 @@ var
 
 var
   MDB: TMariaDBConnector;
-  History: array of string;
-  F: TField;
 
   function GetSQLValue(SQL: string; Column: integer = 1): string;
   begin
@@ -43,18 +41,13 @@ var
     fmt: string;
     i: integer;
     s, h1, h2: string;
-    ColumnFormat: boolean;
+    Help: boolean;
   begin
     Result := MDB.Query(SQL);
     if not Result then writeln('Error: ', SQL, ' ', MDB.LastError, ' ', MDB.LastErrorDesc);
 
-
     if MDB.Dataset.Active then
     begin
-
-      ColumnFormat := True;
-      for i := 0 to MDB.Dataset.Fields.Count - 1 do
-        if MDB.MaxColumnLength[i] > 255 then ColumnFormat := False;
 
       for i := 0 to MDB.Dataset.Fields.Count - 1 do
         if MDB.Dataset.Fields[i].Alignment = taLeftJustify then MDB.MaxColumnLength[i] := -MDB.MaxColumnLength[i];
@@ -68,7 +61,15 @@ var
         h2 := h2 + format(' %' + MDB.MaxColumnLength[i].ToString + 's |', [MDB.Dataset.Fields[i].FieldName]);
       end;
 
-      if ColumnFormat then
+      // source_category_name
+      // writeln('You asked for help about help category: ' + Copy(sql, 6));
+      // writeln('For more information, type `help <item>`, where <item> is one of the following');
+      // To make a more specific request, please type 'help <item>',
+      // where <item> is one of the following topics:
+
+      Help := (Pos('help ', sql) = 1) and (MDB.Dataset.Fields[0].FieldName = 'name');
+
+      if not Help then
       begin
         writeln(h1);
         writeln(h2);
@@ -79,7 +80,7 @@ var
       while not MDB.Dataset.EOF do
       begin
 
-        if ColumnFormat then
+        if not Help then
         begin
           h2 := '|';
           for i := 0 to MDB.Dataset.Fields.Count - 1 do
@@ -99,7 +100,7 @@ var
             if MDB.Dataset.Fields[i].AsString <> '' then
             begin
               h2 := MDB.Dataset.Fields[i].FieldName + ': ';
-              if Abs(MDB.MaxColumnLength[i]) > 255 then h2 := h2 + #13#10;
+              if Pos(#13, MDB.Dataset.Fields[i].AsString) > 0 then h2 := h2 + #13#10;
               h2 := h2 + MDB.Dataset.Fields[i].AsString;
               writeln(h2);
             end;
@@ -109,7 +110,7 @@ var
         MDB.Dataset.Next;
       end;
 
-      if ColumnFormat then
+      if not Help then
       begin
         writeln(h1);
         writeln(format('%d rows in set', [MDB.Dataset.RecordCount]));
@@ -140,16 +141,6 @@ var
       Inc(l, Length(c));
     end;
     SetLength(Result, l);
-  end;
-
-  procedure printhistory(var sql: string);
-  var
-    I: integer;
-  begin
-    sql := '';
-    for I := 0 to Length(History) - 1 do
-      writeln(format('%.20s', [History[I]]));
-
   end;
 
   procedure printhelp;
@@ -324,18 +315,8 @@ var
 begin
   ConfigFileName := ChangeFileExt(ParamStr(0), '.save');
 
-  History := nil;
-  Insert('history', History, length(History));
-  Insert('help', History, length(History));
-  Insert('ping', History, length(History));
-  Insert('set global max_allowed_packet=2048', History, length(History));
-  Insert('set global net_buffer_length=2048', History, length(History));
-  Insert('select @@net_buffer_length, @@max_allowed_packet;', History, length(History));
-  Insert('show databases', History, length(History));
-  Insert('show tables', History, length(History));
-  Insert('use connector_test', History, length(History));
-  Insert('select * from test where id>=5 and id<=11', History, length(History));
-  Insert('select * from test order by id desc', History, length(History));
+  // set global max_allowed_packet=2048
+  // set global net_buffer_length=2048
 
   MariaDbDebug := False;
 

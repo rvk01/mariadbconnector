@@ -7,7 +7,7 @@ interface
 uses
   SysUtils, blcksock, synacode,
   strutils, DB, BufDataset,
-  typinfo, DateUtils, Math, Classes, ZStream;
+  Types, typinfo, DateUtils, Math, Classes, ZStream;
 
 const
   MariaDbDebug: boolean = False;
@@ -54,6 +54,7 @@ type
     FLastErrorDesc: string;
     FPackNumber: byte;
     FDataset: TBufDataset;
+    FMaxColumnLength: TIntegerDynArray;
     FRowsAffected: integer;
     FLastInsertId: integer;
     FServerStatus: integer;
@@ -73,6 +74,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure SendPacket(Buffer: rawbytestring);
+    function ReceiveCompressedBuffer(Timeout: integer): rawbytestring;
     function ReceivePacket(Timeout: integer): rawbytestring;
     function ConnectAndLogin(AServer, APort, AUser, APassword, ADatabase: string): boolean;
     function ExecuteCommand(Command: MySqlCommands; SQL: rawbytestring = ''): boolean;
@@ -85,6 +87,7 @@ type
     property Dataset: TBufDataset read FDataset;
     property Connected: boolean read FConnected;
     property UseCompression: boolean read FUseCompression;
+    property MaxColumnLength: TIntegerDynArray read FMaxColumnLength;
   end;
 
 function Buf2Hex(Buffer: rawbytestring): rawbytestring;
@@ -199,8 +202,7 @@ type
     MYSQL_TYPE_GEOMETRY = 255
     );
 
-function MySQLDataType(MySqlFieldType: enum_MYSQL_types; decimals: integer; size: uint32; flags, charsetnr: integer;
-  var ADataType: TFieldType; var ADecimals, ASize: integer): boolean;
+function MySQLDataType(MySqlFieldType: enum_MYSQL_types; decimals: integer; size: uint32; flags, charsetnr: integer; var ADataType: TFieldType; var ADecimals, ASize: integer): boolean;
 begin
   Result := True;
   ASize := 0;
@@ -268,7 +270,8 @@ begin
   Sock := TTCPBlockSocket.Create;
   Sock.ConnectionTimeout := 2000;
   FUseCompression := True;
-  FConnected := True;
+  FConnected := False;
+  FMaxColumnLength := nil;
 end;
 
 destructor TMariaDBConnector.Destroy;
@@ -309,16 +312,78 @@ begin
 
 end;
 
-function TMariaDBConnector.ReceivePacket(Timeout: integer): rawbytestring;
+
+function TMariaDBConnector.ReceiveCompressedBuffer(Timeout: integer): rawbytestring;
 var
-  Buffer, Bf: rawbytestring;
-  Rc: integer;
-  Ps: integer;
-  Len, uLen: integer;
-  Num: integer;
+  Rc, Ps: integer;
+  Num, Len, uLen: integer;
   Stream: TMemoryStream;
   Buf: rawbytestring;
-  AnotherPacket: boolean;
+begin
+
+  // compression 7 bytes header
+  Buf := ''; // dummy
+  Ps := 1;
+  SetLength(Buf, 7);
+  Rc := Sock.RecvBufferEx(@Buf[1], 7, Timeout);
+  if Rc <> 7 then
+  begin
+    FLastError := Sock.LastError;
+    FLastErrorDesc := Sock.LastErrorDesc;
+    exit('');
+  end;
+  Len := _get_int(Buf, Ps, 3);
+  Num := _get_int(Buf, Ps, 1);
+  uLen := _get_int(Buf, Ps, 3);
+
+  // compressed packets
+  Buf := ''; // dummy
+  Ps := 1;
+  SetLength(Buf, Len);
+  Rc := Sock.RecvBufferEx(@Buf[1], Len, Timeout);
+  if Rc <> Len then
+  begin
+    FLastError := Sock.LastError;
+    FLastErrorDesc := Sock.LastErrorDesc;
+    exit('');
+  end;
+
+  if uLen = 0 then exit(Buf); // uLen = 0 then uncompressed package
+
+  // zlib uncompres data
+  Stream := TMemoryStream.Create;
+  try
+    Stream.WriteBuffer(Pointer(Buf)^, Length(Buf));
+    SetLength(Buf, uLen); // increase buffersize to uncompressed length
+    Stream.Position := 0;
+
+    with TDecompressionStream.Create(Stream, False) do
+    begin
+      Len := Read(Pointer(Buf)^, uLen);
+      if Len <> uLen then
+      begin
+        FLastError := -1;
+        FLastErrorDesc := 'Error wrong size';
+        exit('');
+      end;
+    end;
+  finally
+    Stream.Free;
+  end;
+
+  Result := Buf;
+
+end;
+
+
+
+function TMariaDBConnector.ReceivePacket(Timeout: integer): rawbytestring;
+var
+  Rc: integer;
+  Ps: integer;
+  Len: integer;
+  Num: integer;
+  Buf, Bf: rawbytestring;
 begin
   // https://mariadb.com/kb/en/0-packet/
   // https://mariadb.com/kb/en/com_query/
@@ -337,80 +402,37 @@ begin
     if FConnected and FUseCompression then
     begin
 
-      Buffer := '';
-      AnotherPacket := False;
+      DebugStr('complete fresh buffer');
 
-      repeat // multiple compressed packages possible until eof
+      Buf := ReceiveCompressedBuffer(TimeOut);
 
-        // compression 7 bytes header
-        Buf := ''; // dummy
-        SetLength(Buf, 7);
-        Rc := Sock.RecvBufferEx(@Buf[1], 7, Timeout);
-        if Rc <> 7 then
-        begin
-          FLastError := Sock.LastError;
-          FLastErrorDesc := Sock.LastErrorDesc;
-          exit('');
-        end;
-        Ps := 1;
-        Len := _get_int(Buf, Ps, 3);
-        Num := _get_int(Buf, Ps, 1);
-        uLen := _get_int(Buf, Ps, 3);
-
-        // if uLen > 200 then
-        //  writeln(uLen.ToString);  //   16384   = $4000
-
-        // compressed packets
-        SetLength(Buf, Len);
-        Rc := Sock.RecvBufferEx(@Buf[1], Len, Timeout);
-        if Rc <> Len then
-        begin
-          FLastError := Sock.LastError;
-          FLastErrorDesc := Sock.LastErrorDesc;
-          exit('');
-        end;
-
-        if uLen = 0 then // uLen = 0 then uncompressed package
-        begin
-          Len := _get_int(Buf, Ps, 3);
-          Num := _get_int(Buf, Ps, 1);
-          Result := Copy(Buf, Ps); // rest
-          exit;
-        end;
-
-        // zlib uncompres data
-        Stream := TMemoryStream.Create;
-      try
-        Stream.WriteBuffer(Pointer(Buf)^, Length(Buf));
-        SetLength(Buf, uLen); // increase buffersize to uncompressed length
-        Stream.Position := 0;
-
-        with TDecompressionStream.Create(Stream, False) do
-        begin
-          Len := Read(Pointer(Buf)^, uLen);
-          if Len <> uLen then
-          begin
-            FLastError := -1;
-            FLastErrorDesc := 'Error wrong size';
-            exit('');
-          end;
-        end;
-      finally
-        Stream.Free;
-      end;
-
-        Buffer := Buffer + Buf;
-        AnotherPacket := (uLen = $4000);  // ? why $4000 ?
-
-      until not AnotherPacket; // _is_error(Bf) or _is_ok(Bf) or _is_eof(Bf);
+      // can also not have a header if not first packet
 
       // extract all packets into PacketBuffer
       Ps := 1;
-      while Ps < Length(Buffer) do
+      while Ps <= Length(Buf) do // we need to inspect every byte
       begin
-        Len := _get_int(Buffer, Ps, 3);
-        Num := _get_int(Buffer, Ps, 1);
-        Bf := Copy(Buffer, Ps, Len);
+
+        // we need more compressed data to complete a package
+        if (Ps - 1) + 4 > Length(Buf) then
+        begin
+          Delete(Buf, 1, Ps - 5);
+          Ps := 5;
+          Buf := Buf + ReceiveCompressedBuffer(TimeOut);
+        end;
+
+        Len := _get_int(Buf, Ps, 3);
+        Num := _get_int(Buf, Ps, 1);
+
+        // we need more compressed data to complete a package
+        if (Ps - 1) + Len > Length(Buf) then
+        begin
+          Delete(Buf, 1, Ps - 5);
+          Ps := 5;
+          Buf := Buf + ReceiveCompressedBuffer(TimeOut);
+        end;
+
+        Bf := Copy(Buf, Ps, Len);
         Inc(Ps, Len);
         Insert(Bf, PacketBuffer, Length(PacketBuffer));
       end;
@@ -420,8 +442,8 @@ begin
     begin
 
       // No compression. Just read buffer directly into PacketBuffer
-      SetLength(Buffer, 4);
-      Rc := Sock.RecvBufferEx(@Buffer[1], 4, Timeout);
+      SetLength(Buf, 4);
+      Rc := Sock.RecvBufferEx(@Buf[1], 4, Timeout);
       if Rc <> 4 then
       begin
         FLastError := Sock.LastError;
@@ -429,8 +451,10 @@ begin
         exit('');
       end;
       Ps := 1;
-      Len := _get_int(Buffer, Ps, 3);
-      Num := _get_int(Buffer, Ps, 1);
+      Len := _get_int(Buf, Ps, 3);
+      Num := _get_int(Buf, Ps, 1);
+
+      {TODO: if Len = 0xffffff read subsequent packages until not 0xffffff}
 
       if (Num <> FPackNumber) or (Len = 0) then
       begin
@@ -441,21 +465,21 @@ begin
 
       Inc(FPackNumber); // we only want a correct packet numer next time
 
-      Buffer := '';
-      SetLength(Buffer, Len);
-      if Sock.RecvBufferEx(@Buffer[1], Len, Timeout) <> Len then
+      Buf := '';
+      SetLength(Buf, Len);
+      if Sock.RecvBufferEx(@Buf[1], Len, Timeout) <> Len then
       begin
         FLastError := -1;
         FLastErrorDesc := 'Did not receive complete packet';
         exit('');
       end;
-      Insert(Buffer, PacketBuffer, Length(PacketBuffer));
+      Insert(Buf, PacketBuffer, Length(PacketBuffer));
 
     end;
 
   end;
 
-  Buffer := '';
+  Buf := '';
   if Length(packetbuffer) > 0 then
   begin
     // we still have packets in the PacketBuffer, serve them first
@@ -638,7 +662,6 @@ var
   AuthPlugin: string;
   Buffer: rawbytestring = '';
   Seed: rawbytestring;
-
   FServerProtocol: integer;
   FServerVersion: rawbytestring;
   FConnectionId: integer;
@@ -646,9 +669,7 @@ var
   FServerDefaultCollation: integer;
   FStatusFlags: integer;
   FPluginDataLength: integer;
-
   FClientCapabilities: uint64;
-
   Part1, Part2: rawbytestring;
   Ps: integer;
   x: uint64;
@@ -664,134 +685,150 @@ begin
   begin
     FLastError := Sock.LastError;
     FLastErrorDesc := Sock.LastErrorDesc;
+    Sock.CloseSocket;
+    Sock.ResetLastError;
     exit(False);
   end;
 
-  // https://mariadb.com/kb/en/connection/#initial-handshake-packet
+  try
 
-  FPackNumber := 0; // command always start on 0
 
-  // read complete handschake package from the server
-  Buffer := ReceivePacket(2000);
-  if (FLastError <> 0) then exit(False);
 
-  DebugStr('We have contact');
-  DebugStr(Buf2Hex(Buffer));
+    // https://mariadb.com/kb/en/connection/#initial-handshake-packet
 
-  Ps := 1;
+    FPackNumber := 0; // command always start on 0
 
-  FServerProtocol := _get_int(Buffer, Ps, 1); // int<1> protocol version
-  FServerVersion := _get_str(Buffer, Ps, 0); // string<NUL> server version (MariaDB server version is by default prefixed by "5.5.5-")
-  FConnectionId := _get_int(Buffer, Ps, 4); // int<4> connection id, not read here
-  seed := _get_str(Buffer, Ps, 8); // string<8> scramble 1st part (authentication seed)
-  Inc(Ps, 1); // string<1> reserved byte
-
-  FServerCapabilities := _get_int(Buffer, Ps, 2); // int<2> server capabilities (1st part)
-  FServerDefaultCollation := _get_int(Buffer, Ps, 1); // int<1> server default collation
-  FStatusFlags := _get_int(Buffer, Ps, 2); // int<2> status flags
-  x := _get_int(Buffer, Ps, 2);
-  x := x shl 16;
-  FServerCapabilities := FServerCapabilities + x; // int<2> server capabilities (2nd part)
-  if (FServerCapabilities and CLIENT_PLUGIN_AUTH) <> 0 then
-    FPluginDataLength := _get_int(Buffer, Ps, 1) // - int<1> plugin data length or - int<1> 0x00
-  else
-    FPluginDataLength := 0;
-  Inc(Ps, 6); // string<6> filler
-  if (FServerCapabilities and CLIENT_CLIENT_MYSQL) = 0 then
-  begin
-    x := _get_int(Buffer, Ps, 4);
-    x := x shl 32;
-    FServerCapabilities := FServerCapabilities + x; // - int<4> server capabilities 3rd part . MariaDB specific flags /* MariaDB 10.2 or later */
-  end
-  else
-    Inc(Ps, 4); // string<4> filler
-  if (FServerCapabilities and CLIENT_SECURE_CONNECTION) <> 0 then
-  begin
-    //DebugStr('getting 2nd seed');
-    Seed := Seed + _get_str(Buffer, Ps, Math.Max(12, FPluginDataLength - 9)); // string<n> scramble 2nd part. Length = max(12, plugin data length - 9)
-    Inc(Ps, 1); // string<1> reserved byte
-  end;
-  if (FServerCapabilities and CLIENT_PLUGIN_AUTH) <> 0 then
-  begin
-    //DebugStr('getting authplugin');
-    AuthPlugin := _get_str(Buffer, Ps, 0); // string<NUL> authentication plugin name
-  end;
-
-  if (FServerCapabilities and CLIENT_COMPRESS) = 0 then FUseCompression := False;
-
-  DebugStr('------------------');
-  DebugStr('Server protocol: ' + FServerProtocol.ToString);
-  DebugStr('Server version: ' + FServerVersion);
-  DebugStr('Connection ID: ' + FConnectionId.ToString);
-  DebugStr('Server capabilities: ' + BinStr(FServerCapabilities, 64));  // 00000000000000001111011111111110
-  DebugStr('Server default collation: ' + FServerDefaultCollation.ToString);
-  DebugStr('Status flag: ' + FStatusFlags.ToString);
-  DebugStr('Plugin data length: ' + FPluginDataLength.ToString);
-  DebugStr('Authentication plugin: ' + AuthPlugin);
-  if FUseCompression then DebugStr('Using compression')
-  else
-    DebugStr('Not using compression');
-  DebugStr('------------------');
-
-  // SHA1( password )    XOR    SHA1( seed + SHA1( SHA1( password ) ) )
-  Part1 := SHA1(APassword);
-  Part2 := SHA1(seed + SHA1(SHA1(APassword)));
-  for Ps := 1 to length(Part1) do
-    Part1[Ps] := Chr(Ord(Part1[PS]) xor Ord(Part2[Ps]));
-
-  DebugStr('Password seed: ' + Buf2Hex(seed));
-  DebugStr('Hashed pw: ' + Buf2Hex(Part1));
-  DebugStr('------------------');
-
-  if AuthPlugin <> 'mysql_native_password' then
-  begin
-    FLastError := -1;
-    FLastErrorDesc := 'Authentication "' + AuthPlugin + '" not implemented yet';
-    DebugStr(FLastErrorDesc);
-  end;
-
-  if AuthPlugin = 'mysql_native_password' then
-  begin
-
-    FClientCapabilities :=
-      CLIENT_CLIENT_MYSQL or
-      CLIENT_LONG_FLAG or
-      CLIENT_CONNECT_WITH_DB or
-      CLIENT_PROTOCOL_41 or
-      CLIENT_INTERACTIVE or
-      CLIENT_TRANSACTIONS or
-      CLIENT_SECURE_CONNECTION or
-      CLIENT_MULTI_STATEMENTS or
-      CLIENT_MULTI_RESULTS;
-
-    if FUseCompression then FClientCapabilities := FClientCapabilities or CLIENT_COMPRESS;
-
-    // Construct the answer handschake package
-    Buffer := _set_int(FClientCapabilities, 4);  // int<4> client capabilities // #$0D#$A6#$03#$00
-    Buffer := Buffer + _set_int($01000000, 4); // int<4> max packet size 16MB // #0#0#0#1
-    // Buffer := Buffer + _set_int($40000000, 4); // int<4> max packet size 1GB // #0#0#0#1
-    // Buffer := Buffer + _set_int($00000001, 4); // int<4> max packet size 1B // #0#0#0#1
-    Buffer := Buffer + #$21;           // int<1> client character collation
-    Buffer := Buffer + #0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0; // string<19> reserved
-    Buffer := Buffer + #0#0#0#0;       // - int<4> extended client capabilities
-    Buffer := Buffer + AUser + #0;     // string<NUL> username
-    Buffer := Buffer + #$14 + Part1;   // - string<fix> authentication response (length is indicated by previous field)
-    Buffer := Buffer + ADatabase + #0; // - string<NUL> default database name
-
-    DebugStr(Buf2Hex(Buffer));
-    DebugStr('sending first packet with authentication');
-
-    SendPacket(Buffer);
-
-    // we need an answer
-    Buffer := ReceivePacket(5000);
+    // read complete handschake package from the server
+    Buffer := ReceivePacket(2000);
     if (FLastError <> 0) then exit(False);
-    if _is_error(Buffer) then exit(False);
 
-    if _is_ok(Buffer) then
+    DebugStr('We have contact');
+    DebugStr(Buf2Hex(Buffer));
+
+    Ps := 1;
+
+    FServerProtocol := _get_int(Buffer, Ps, 1); // int<1> protocol version
+    FServerVersion := _get_str(Buffer, Ps, 0); // string<NUL> server version (MariaDB server version is by default prefixed by "5.5.5-")
+    FConnectionId := _get_int(Buffer, Ps, 4); // int<4> connection id, not read here
+    seed := _get_str(Buffer, Ps, 8); // string<8> scramble 1st part (authentication seed)
+    Inc(Ps, 1); // string<1> reserved byte
+
+    FServerCapabilities := _get_int(Buffer, Ps, 2); // int<2> server capabilities (1st part)
+    FServerDefaultCollation := _get_int(Buffer, Ps, 1); // int<1> server default collation
+    FStatusFlags := _get_int(Buffer, Ps, 2); // int<2> status flags
+    x := _get_int(Buffer, Ps, 2);
+    x := x shl 16;
+    FServerCapabilities := FServerCapabilities + x; // int<2> server capabilities (2nd part)
+    if (FServerCapabilities and CLIENT_PLUGIN_AUTH) <> 0 then
+      FPluginDataLength := _get_int(Buffer, Ps, 1) // - int<1> plugin data length or - int<1> 0x00
+    else
+      FPluginDataLength := 0;
+    Inc(Ps, 6); // string<6> filler
+    if (FServerCapabilities and CLIENT_CLIENT_MYSQL) = 0 then
     begin
-      FConnected := True;
-      exit(True);
+      x := _get_int(Buffer, Ps, 4);
+      x := x shl 32;
+      FServerCapabilities := FServerCapabilities + x; // - int<4> server capabilities 3rd part . MariaDB specific flags /* MariaDB 10.2 or later */
+    end
+    else
+      Inc(Ps, 4); // string<4> filler
+    if (FServerCapabilities and CLIENT_SECURE_CONNECTION) <> 0 then
+    begin
+      //DebugStr('getting 2nd seed');
+      Seed := Seed + _get_str(Buffer, Ps, Math.Max(12, FPluginDataLength - 9)); // string<n> scramble 2nd part. Length = max(12, plugin data length - 9)
+      Inc(Ps, 1); // string<1> reserved byte
+    end;
+    if (FServerCapabilities and CLIENT_PLUGIN_AUTH) <> 0 then
+    begin
+      //DebugStr('getting authplugin');
+      AuthPlugin := _get_str(Buffer, Ps, 0); // string<NUL> authentication plugin name
+    end;
+
+    if (FServerCapabilities and CLIENT_COMPRESS) = 0 then FUseCompression := False;
+
+    DebugStr('------------------');
+    DebugStr('Server protocol: ' + FServerProtocol.ToString);
+    DebugStr('Server version: ' + FServerVersion);
+    DebugStr('Connection ID: ' + FConnectionId.ToString);
+    DebugStr('Server capabilities: ' + BinStr(FServerCapabilities, 64));  // 00000000000000001111011111111110
+    DebugStr('Server default collation: ' + FServerDefaultCollation.ToString);
+    DebugStr('Status flag: ' + FStatusFlags.ToString);
+    DebugStr('Plugin data length: ' + FPluginDataLength.ToString);
+    DebugStr('Authentication plugin: ' + AuthPlugin);
+    if FUseCompression then DebugStr('Using compression')
+    else
+      DebugStr('Not using compression');
+    DebugStr('------------------');
+
+    // SHA1( password )    XOR    SHA1( seed + SHA1( SHA1( password ) ) )
+    Part1 := SHA1(APassword);
+    Part2 := SHA1(seed + SHA1(SHA1(APassword)));
+    for Ps := 1 to length(Part1) do
+      Part1[Ps] := Chr(Ord(Part1[PS]) xor Ord(Part2[Ps]));
+
+    DebugStr('Password seed: ' + Buf2Hex(seed));
+    DebugStr('Hashed pw: ' + Buf2Hex(Part1));
+    DebugStr('------------------');
+
+    if AuthPlugin <> 'mysql_native_password' then
+    begin
+      FLastError := -1;
+      FLastErrorDesc := 'Authentication "' + AuthPlugin + '" not implemented yet';
+      DebugStr(FLastErrorDesc);
+    end;
+
+    if AuthPlugin = 'mysql_native_password' then
+    begin
+
+      FClientCapabilities :=
+        CLIENT_CLIENT_MYSQL or
+        CLIENT_LONG_FLAG or
+        CLIENT_CONNECT_WITH_DB or
+        CLIENT_PROTOCOL_41 or
+        CLIENT_INTERACTIVE or
+        CLIENT_TRANSACTIONS or
+        CLIENT_SECURE_CONNECTION or
+        CLIENT_MULTI_STATEMENTS or
+        CLIENT_MULTI_RESULTS;
+
+      if FUseCompression then FClientCapabilities := FClientCapabilities or CLIENT_COMPRESS;
+
+      // Construct the answer handschake package
+      Buffer := _set_int(FClientCapabilities, 4);  // int<4> client capabilities // #$0D#$A6#$03#$00
+      Buffer := Buffer + _set_int($01000000, 4); // int<4> max packet size 16MB // #0#0#0#1
+      // Buffer := Buffer + _set_int($40000000, 4); // int<4> max packet size 1GB // #0#0#0#1
+      // Buffer := Buffer + _set_int($00000001, 4); // int<4> max packet size 1B // #0#0#0#1
+      Buffer := Buffer + #$21;           // int<1> client character collation
+      Buffer := Buffer + #0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0; // string<19> reserved
+      Buffer := Buffer + #0#0#0#0;       // - int<4> extended client capabilities
+      Buffer := Buffer + AUser + #0;     // string<NUL> username
+      Buffer := Buffer + #$14 + Part1;   // - string<fix> authentication response (length is indicated by previous field)
+      Buffer := Buffer + ADatabase + #0; // - string<NUL> default database name
+
+      DebugStr(Buf2Hex(Buffer));
+      DebugStr('sending first packet with authentication');
+
+      SendPacket(Buffer);
+
+      // we need an answer
+      Buffer := ReceivePacket(5000);
+      if (FLastError <> 0) then exit(False);
+      if _is_error(Buffer) then exit(False);
+
+      if _is_ok(Buffer) then
+      begin
+        FConnected := True;
+        exit(True);
+      end;
+
+    end;
+
+  finally
+
+    if Result = False then
+    begin
+      Sock.CloseSocket;
+      Sock.ResetLastError;
     end;
 
   end;
@@ -826,6 +863,7 @@ begin
   FLastError := 0;
   FLastErrorDesc := '';
   FPackNumber := 0; // command always start on 0
+  FMaxColumnLength := nil;
 
   Buffer := Chr(Ord(Command)) + SQL;
   DebugStr('Sending ' + GetEnumName(TypeInfo(MySqlCommands), Ord(Command)) + ' ' + SQL);
@@ -881,6 +919,9 @@ begin
     DebugStr('Adding column ' + AName + ' ' + GetEnumName(TypeInfo(TFieldType), Ord(ADataType)) + ' size:' + ASize.ToString);
     FDataset.FieldDefs.Add(AName, ADataType, ASize);
 
+    SetLength(FMaxColumnLength, FDataset.FieldDefs.Count);
+    if Length(AName) > FMaxColumnLength[FDataset.FieldDefs.Count - 1] then FMaxColumnLength[FDataset.FieldDefs.Count - 1] := Length(AName);
+
   until (Buffer = ''); // never happen, we get eof, ok or error first
 
   if FDataset.FieldDefs.Count = 0 then exit(False); // shouldn't happen
@@ -914,6 +955,8 @@ begin
 
       // we are in TEXT protocol so result is always in text
       Value := _get_str(Buffer, Ps);
+
+      if Length(Value) > FMaxColumnLength[Column] then FMaxColumnLength[Column] := Length(Value);
 
       case FDataset.Fields[Column].DataType of
 
@@ -962,7 +1005,12 @@ end;
 
 procedure TMariaDBConnector.Quit;
 begin
-  ExecuteCommand(COMMAND_QUIT);
+  if FConnected then ExecuteCommand(COMMAND_QUIT);
+  Sock.CloseSocket;
+  Sock.ResetLastError;
+  FConnected := False;
+  FLastError := 0;
+  FLastErrorDesc := '';
 end;
 
 procedure TMariaDBConnector.SetMultiOptions(Value: boolean);
